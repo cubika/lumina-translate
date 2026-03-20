@@ -92,7 +92,7 @@ async function callAnthropic(req: AICallRequest): Promise<string> {
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': req.anthropicKey!,
-      'anthropic-version': '2025-09-25',
+      'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
       model: req.model,

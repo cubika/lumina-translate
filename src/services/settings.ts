@@ -13,8 +13,8 @@ export interface AppSettings {
 const STORAGE_KEY = 'lumina-settings'
 
 export const defaultSettings: AppSettings = {
-  selectedModel: 'gpt-5.4',
-  providerType: 'openai',
+  selectedModel: 'claude-haiku-4-5-20251001',
+  providerType: 'anthropic',
   openaiApiKey: '',
   openaiBaseUrl: 'https://api.openai.com/v1',
   anthropicApiKey: '',

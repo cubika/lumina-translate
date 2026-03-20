@@ -92,7 +92,7 @@ async function callAI(
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': config.anthropicKey,
-        'anthropic-version': '2025-09-25',
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
         model,
@@ -108,6 +108,9 @@ async function callAI(
         const errJson = JSON.parse(errText)
         detail = errJson.error?.message || errText
       } catch { /* use raw text */ }
+      if (detail === 'Error' || detail === 'error') {
+        detail = `Model "${model}" may not be available with your API key. Try a different model in Settings.`
+      }
       throw new Error(`Anthropic API error (${response.status}): ${detail}`)
     }
     const data = await response.json()
