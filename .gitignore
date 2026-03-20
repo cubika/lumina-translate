@@ -13,3 +13,5 @@ design/
 *.png
 *.jpg
 *.jpeg
+!public/icon.png
+!public/icon.ico
