@@ -5,7 +5,8 @@ export interface AIProvider {
 }
 
 export const AI_PROVIDERS: AIProvider[] = [
-  // OpenAI - latest first
+  // OpenAI-compatible - latest first
+  { id: 'model-router', name: 'Azure Model Router', type: 'openai' },
   { id: 'gpt-5.4', name: 'GPT-5.4', type: 'openai' },
   { id: 'gpt-5.4-mini', name: 'GPT-5.4 Mini', type: 'openai' },
   { id: 'gpt-5.4-nano', name: 'GPT-5.4 Nano', type: 'openai' },
@@ -117,15 +118,26 @@ async function callAI(
     return data.content[0].text
   } else {
     if (!config.openaiKey) throw new Error('OpenAI API key not configured. Please set it in Settings.')
-    const openaiBase = isDev && config.openaiBase === 'https://api.openai.com/v1'
-      ? '/proxy/openai/v1'
-      : config.openaiBase
-    const response = await fetch(`${openaiBase}/chat/completions`, {
+    // In dev mode, route through Vite proxy to avoid CORS
+    const isCustomBase = config.openaiBase !== 'https://api.openai.com/v1'
+    let fetchUrl: string
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.openaiKey}`,
+    }
+    if (isDev) {
+      if (isCustomBase) {
+        fetchUrl = '/proxy/custom/chat/completions'
+        headers['x-proxy-target'] = config.openaiBase
+      } else {
+        fetchUrl = '/proxy/openai/v1/chat/completions'
+      }
+    } else {
+      fetchUrl = `${config.openaiBase}/chat/completions`
+    }
+    const response = await fetch(fetchUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.openaiKey}`,
-      },
+      headers,
       body: JSON.stringify({ model, messages, temperature: 0.3 }),
     })
     if (!response.ok) {
