@@ -68,6 +68,7 @@ export default function SettingsWorkspace() {
 
   const [showOpenaiKey, setShowOpenaiKey] = useState(false)
   const [showAnthropicKey, setShowAnthropicKey] = useState(false)
+  const [saveMessage, setSaveMessage] = useState('')
 
   function handleSelectModel(id: string, type: 'openai' | 'anthropic') {
     setSelectedModel(id)
@@ -82,6 +83,8 @@ export default function SettingsWorkspace() {
       openaiBaseUrl,
       anthropicApiKey,
     })
+    setSaveMessage('Settings saved successfully!')
+    setTimeout(() => setSaveMessage(''), 3000)
   }
 
   function handleReset() {
@@ -101,15 +104,13 @@ export default function SettingsWorkspace() {
 
   return (
     <div className="h-full overflow-y-auto px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-headline font-extrabold tracking-tight text-on-surface">
-          Workspace Settings
-        </h1>
-        <p className="text-on-surface-variant/60 mt-2 text-sm font-label">
-          Configure your AI models, API keys, and privacy preferences
-        </p>
-      </div>
+      {/* Save feedback toast */}
+      {saveMessage && (
+        <div className="fixed top-14 right-8 z-50 bg-green-500/15 border border-green-500/30 text-green-400 px-5 py-3 rounded-xl text-sm font-label font-semibold flex items-center gap-2 shadow-lg animate-[fadeIn_0.2s_ease-out]">
+          <span className="material-symbols-outlined text-lg">check_circle</span>
+          {saveMessage}
+        </div>
+      )}
 
       {/* Bento Grid */}
       <div className="flex flex-col gap-6">
