@@ -2,10 +2,10 @@ import type { WorkspaceId } from '../../App'
 
 const workspaceLabels: Record<WorkspaceId, string> = {
   translate: 'Translate',
-  proofread: 'Proofread Workspace',
-  dictionary: 'Dictionary Workspace',
-  documents: 'Document Hub',
-  settings: 'Workspace Settings',
+  proofread: 'Proofread',
+  dictionary: 'Dictionary',
+  documents: 'Documents',
+  settings: 'Settings',
 }
 
 interface TopBarProps {
