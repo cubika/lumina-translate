@@ -48,12 +48,11 @@
     "win": {
       "target": [
         {
-          "target": "portable",
+          "target": "zip",
           "arch": ["x64"]
         }
       ],
-      "icon": "public/icon.ico",
-      "signAndEditExecutable": false
+      "icon": "public/icon.ico"
     }
   }
 }
