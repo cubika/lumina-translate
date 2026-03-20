@@ -1,3 +1,5 @@
+import { invoke } from '@tauri-apps/api/core'
+
 export interface AIProvider {
   id: string
   name: string
@@ -64,8 +66,8 @@ export function downloadTextFile(content: string, filename: string) {
   URL.revokeObjectURL(url)
 }
 
-// Route API calls through Electron main process (no CORS).
-// Falls back to direct fetch in browser dev mode.
+// Route API calls through Tauri backend (no CORS).
+// Falls back to direct fetch in browser-only dev mode.
 async function callAI(
   messages: { role: string; content: string }[],
   model: string,
@@ -76,16 +78,19 @@ async function callAI(
   const settings = loadSettings()
   const config = { openaiKey: settings.openaiApiKey, openaiBase: settings.openaiBaseUrl, anthropicKey: settings.anthropicApiKey }
 
-  // Electron IPC path — no CORS issues
-  if (window.electronAPI?.aiCall) {
-    const resp = await window.electronAPI.aiCall({
-      provider: providerType,
-      model,
-      messages,
-      system,
-      openaiKey: config.openaiKey,
-      openaiBase: config.openaiBase,
-      anthropicKey: config.anthropicKey,
+  // Tauri backend path — no CORS issues
+  if (window.__TAURI_INTERNALS__) {
+    const resp = await invoke<{ ok: boolean; result?: string; error?: string }>('ai_call', {
+      req: {
+        provider: providerType,
+        model,
+        messages,
+        system,
+        openaiKey: config.openaiKey,
+        openaiBase: config.openaiBase,
+        anthropicKey: config.anthropicKey,
+        maxTokens: maxTokens || 4096,
+      },
     })
     if (!resp.ok) throw new Error(resp.error)
     return resp.result!

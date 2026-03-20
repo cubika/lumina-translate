@@ -1,7 +1,5 @@
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
-import electron from 'vite-plugin-electron'
-import renderer from 'vite-plugin-electron-renderer'
 import path from 'path'
 
 // Dynamic proxy for custom OpenAI-compatible endpoints (Azure, Ollama, etc.)
@@ -52,43 +50,19 @@ export default defineConfig({
   plugins: [
     customProxyPlugin(),
     react(),
-    electron([
-      {
-        entry: 'electron/main.ts',
-        vite: {
-          build: {
-            outDir: 'dist-electron',
-            rollupOptions: {
-              external: ['electron', 'electron-store'],
-            },
-          },
-        },
-      },
-      {
-        entry: 'electron/preload.ts',
-        onstart(args) {
-          args.reload()
-        },
-        vite: {
-          build: {
-            outDir: 'dist-electron',
-            rollupOptions: {
-              external: ['electron'],
-            },
-          },
-        },
-      },
-    ]),
-    renderer(),
   ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // Prevent Vite from obscuring Rust errors
+  clearScreen: false,
   server: {
+    port: 5173,
+    strictPort: true,
     watch: {
-      ignored: ['**/*.png', '**/*.jpg', '**/*.jpeg', '**/.playwright-mcp/**', '**/screenshots/**', '**/design/**', '**/release/**', '**/*.output'],
+      ignored: ['**/*.png', '**/*.jpg', '**/*.jpeg', '**/.playwright-mcp/**', '**/screenshots/**', '**/design/**', '**/release/**', '**/*.output', '**/src-tauri/**'],
     },
     proxy: {
       '/proxy/anthropic': {
