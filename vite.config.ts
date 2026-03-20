@@ -87,6 +87,9 @@ export default defineConfig({
     },
   },
   server: {
+    watch: {
+      ignored: ['**/*.png', '**/*.jpg', '**/*.jpeg', '**/.playwright-mcp/**', '**/screenshots/**', '**/design/**', '**/release/**', '**/*.output'],
+    },
     proxy: {
       '/proxy/anthropic': {
         target: 'https://api.anthropic.com',
