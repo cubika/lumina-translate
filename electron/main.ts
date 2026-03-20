@@ -72,7 +72,9 @@ async function callOpenAI(req: AICallRequest): Promise<string> {
     },
     body: JSON.stringify({
       model: req.model,
-      messages: req.messages,
+      messages: req.system
+        ? [{ role: 'system', content: req.system }, ...req.messages]
+        : req.messages,
       temperature: 0.3,
     }),
   })

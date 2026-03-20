@@ -138,10 +138,14 @@ async function callAI(
     } else {
       fetchUrl = `${config.openaiBase}/chat/completions`
     }
+    // OpenAI format: system message goes in the messages array
+    const openaiMessages = system
+      ? [{ role: 'system', content: system }, ...messages]
+      : messages
     const response = await fetch(fetchUrl, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ model, messages, temperature: 0.3 }),
+      body: JSON.stringify({ model, messages: openaiMessages, temperature: 0.3 }),
     })
     if (!response.ok) {
       const detail = await parseApiError(response)
