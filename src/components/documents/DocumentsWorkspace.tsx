@@ -131,16 +131,6 @@ export default function DocumentsWorkspace() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-[1200px] mx-auto px-8 py-10">
-        {/* Header */}
-        <div className="mb-10">
-          <h1 className="text-4xl font-extrabold text-on-surface tracking-tight font-headline">
-            Document Hub
-          </h1>
-          <p className="text-[11px] uppercase tracking-[0.25em] text-on-surface-variant/50 mt-2 font-label">
-            Translate entire documents with AI
-          </p>
-        </div>
-
         {/* Bento Grid */}
         <div className="grid grid-cols-12 gap-5 mb-10">
           {/* Left: Drag-and-drop upload area */}

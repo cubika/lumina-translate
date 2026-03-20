@@ -23,7 +23,7 @@ function ModelRow({
   return (
     <button
       onClick={() => onSelect(id, type)}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-150 cursor-pointer text-left ${
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-150 cursor-pointer text-left ${
         isSelected
           ? 'bg-primary-fixed-dim/10 border border-primary-fixed-dim/40'
           : 'border border-transparent hover:bg-surface-container-high/50'
@@ -114,53 +114,6 @@ export default function SettingsWorkspace() {
       {/* Bento Grid */}
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-6">
-          {/* AI Engine Panel — grouped list */}
-          <div className="bg-surface-container-low rounded-[24px] border border-outline-variant/15 p-6">
-            <div className="flex items-center gap-3 mb-5">
-              <span className="material-symbols-outlined text-primary-fixed-dim text-2xl">
-                psychology
-              </span>
-              <div>
-                <h2 className="text-lg font-headline font-bold text-on-surface">AI Engine</h2>
-                <p className="text-xs text-on-surface-variant/50">
-                  Select the model that powers your translations
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              {/* OpenAI group */}
-              <div>
-                <div className="flex items-center gap-2 mb-3 px-1">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-secondary-fixed-dim">
-                    OpenAI
-                  </span>
-                  <div className="flex-1 h-px bg-outline-variant/15" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  {openaiModels.map((m) => (
-                    <ModelRow key={m.id} {...m} selectedModel={selectedModel} onSelect={handleSelectModel} />
-                  ))}
-                </div>
-              </div>
-
-              {/* Anthropic group */}
-              <div>
-                <div className="flex items-center gap-2 mb-3 px-1">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-tertiary-fixed-dim">
-                    Anthropic
-                  </span>
-                  <div className="flex-1 h-px bg-outline-variant/15" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  {anthropicModels.map((m) => (
-                    <ModelRow key={m.id} {...m} selectedModel={selectedModel} onSelect={handleSelectModel} />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* API Configuration Panel */}
           <div className="bg-surface-container-low rounded-[24px] border border-outline-variant/15 p-6">
             <div className="flex items-center justify-between mb-5">
@@ -262,6 +215,53 @@ export default function SettingsWorkspace() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* AI Engine Panel — stacked sections with flex-wrap grids */}
+          <div className="bg-surface-container-low rounded-[24px] border border-outline-variant/15 p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <span className="material-symbols-outlined text-primary-fixed-dim text-2xl">
+                psychology
+              </span>
+              <div>
+                <h2 className="text-lg font-headline font-bold text-on-surface">AI Engine</h2>
+                <p className="text-xs text-on-surface-variant/50">
+                  Select the model that powers your translations
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-6">
+              {/* OpenAI group */}
+              <div>
+                <div className="flex items-center gap-2 mb-3 px-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-secondary-fixed-dim">
+                    OpenAI
+                  </span>
+                  <div className="flex-1 h-px bg-outline-variant/15" />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {openaiModels.map((m) => (
+                    <ModelRow key={m.id} {...m} selectedModel={selectedModel} onSelect={handleSelectModel} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Anthropic group */}
+              <div>
+                <div className="flex items-center gap-2 mb-3 px-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-tertiary-fixed-dim">
+                    Anthropic
+                  </span>
+                  <div className="flex-1 h-px bg-outline-variant/15" />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {anthropicModels.map((m) => (
+                    <ModelRow key={m.id} {...m} selectedModel={selectedModel} onSelect={handleSelectModel} />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>

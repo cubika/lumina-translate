@@ -1,7 +1,7 @@
 import type { WorkspaceId } from '../../App'
 
 const workspaceLabels: Record<WorkspaceId, string> = {
-  translate: 'Workspace',
+  translate: 'Translate',
   proofread: 'Proofread Workspace',
   dictionary: 'Dictionary Workspace',
   documents: 'Document Hub',

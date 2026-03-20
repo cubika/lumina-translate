@@ -90,22 +90,17 @@ export default function TranslateWorkspace() {
                 </span>
               </button>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-label text-on-surface-variant/60">
-                {sourceText.length} chars
-              </span>
-              {sourceText && (
-                <button
-                  onClick={handleClearSource}
-                  className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-surface-container-highest/50 transition-all duration-200 active:scale-90"
-                  title="Clear"
-                >
-                  <span className="material-symbols-outlined text-on-surface-variant/60 text-base">
-                    close
-                  </span>
-                </button>
-              )}
-            </div>
+            {sourceText && (
+              <button
+                onClick={handleClearSource}
+                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-surface-container-highest/50 transition-all duration-200 active:scale-90"
+                title="Clear"
+              >
+                <span className="material-symbols-outlined text-on-surface-variant/60 text-base">
+                  close
+                </span>
+              </button>
+            )}
           </div>
           <div className="glass-panel rounded-2xl border border-outline-variant/10 flex-1 flex flex-col min-h-[260px]">
             <textarea
@@ -119,6 +114,11 @@ export default function TranslateWorkspace() {
                 }
               }}
             />
+            <div className="flex justify-end px-5 pb-3">
+              <span className="text-[11px] font-label text-on-surface-variant/60">
+                {sourceText.length} chars
+              </span>
+            </div>
           </div>
         </div>
 
