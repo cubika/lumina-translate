@@ -62,7 +62,8 @@ async function callAI(
   messages: { role: string; content: string }[],
   model: string,
   providerType: 'openai' | 'anthropic',
-  system?: string
+  system?: string,
+  maxTokens?: number
 ): Promise<string> {
   const config = getApiConfig()
 
@@ -95,14 +96,19 @@ async function callAI(
       },
       body: JSON.stringify({
         model,
-        max_tokens: 4096,
+        max_tokens: maxTokens || 4096,
         system: system || undefined,
         messages: messages.filter(m => m.role !== 'system'),
       }),
     })
     if (!response.ok) {
-      const err = await response.text()
-      throw new Error(`Anthropic API error: ${response.status} ${err}`)
+      const errText = await response.text()
+      let detail = errText
+      try {
+        const errJson = JSON.parse(errText)
+        detail = errJson.error?.message || errText
+      } catch { /* use raw text */ }
+      throw new Error(`Anthropic API error (${response.status}): ${detail}`)
     }
     const data = await response.json()
     return data.content[0].text
@@ -120,8 +126,13 @@ async function callAI(
       body: JSON.stringify({ model, messages, temperature: 0.3 }),
     })
     if (!response.ok) {
-      const err = await response.text()
-      throw new Error(`OpenAI API error: ${response.status} ${err}`)
+      const errText = await response.text()
+      let detail = errText
+      try {
+        const errJson = JSON.parse(errText)
+        detail = errJson.error?.message || errText
+      } catch { /* use raw text */ }
+      throw new Error(`OpenAI API error (${response.status}): ${detail}`)
     }
     const data = await response.json()
     return data.choices[0].message.content
@@ -146,7 +157,11 @@ export async function translate(req: TranslationRequest): Promise<string> {
     { role: 'user', content: req.text },
   ]
 
-  return callAI(messages, req.model, req.providerType, systemMsg)
+  // Scale max_tokens for longer texts (translation output ≈ input length)
+  const estimatedTokens = Math.ceil(req.text.length / 3)
+  const maxTokens = Math.max(4096, Math.min(estimatedTokens * 2, 16384))
+
+  return callAI(messages, req.model, req.providerType, systemMsg, maxTokens)
 }
 
 export async function proofread(req: ProofreadRequest): Promise<{
