@@ -7,3 +7,5 @@ release/
 .env
 .env.local
 screenshots/
+design/
+.playwright-mcp/
