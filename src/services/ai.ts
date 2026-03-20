@@ -5,9 +5,17 @@ export interface AIProvider {
 }
 
 export const AI_PROVIDERS: AIProvider[] = [
+  // OpenAI - latest first
+  { id: 'gpt-5.4', name: 'GPT-5.4', type: 'openai' },
+  { id: 'gpt-5.4-mini', name: 'GPT-5.4 Mini', type: 'openai' },
+  { id: 'gpt-5.4-nano', name: 'GPT-5.4 Nano', type: 'openai' },
+  { id: 'gpt-5.2', name: 'GPT-5.2', type: 'openai' },
   { id: 'gpt-4.1', name: 'GPT-4.1', type: 'openai' },
   { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', type: 'openai' },
   { id: 'gpt-4.1-nano', name: 'GPT-4.1 Nano', type: 'openai' },
+  { id: 'gpt-4o', name: 'GPT-4o', type: 'openai' },
+  { id: 'gpt-4o-mini', name: 'GPT-4o Mini', type: 'openai' },
+  // Anthropic - latest first
   { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', type: 'anthropic' },
   { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', type: 'anthropic' },
   { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', type: 'anthropic' },

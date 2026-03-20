@@ -3,40 +3,8 @@ import { useSettings } from '../../hooks/useSettings'
 import { AI_PROVIDERS } from '../../services/ai'
 import { defaultSettings } from '../../services/settings'
 
-const MODEL_META: Record<string, { description: string; tags: string[]; icon: string }> = {
-  'gpt-4.1': {
-    description: 'Most capable OpenAI model with best-in-class coding and instruction following',
-    tags: ['Most Capable', 'Multilingual'],
-    icon: 'bolt',
-  },
-  'gpt-4.1-mini': {
-    description: 'Balanced speed and intelligence for everyday translation tasks',
-    tags: ['Balanced', 'Fast'],
-    icon: 'speed',
-  },
-  'gpt-4.1-nano': {
-    description: 'Ultra-fast and cost-efficient for simple translations',
-    tags: ['Fastest', 'Lightweight'],
-    icon: 'flash_on',
-  },
-  'claude-opus-4-6': {
-    description: 'Most powerful Claude model with exceptional reasoning and nuance',
-    tags: ['Most Powerful', 'Nuanced'],
-    icon: 'neurology',
-  },
-  'claude-sonnet-4-6': {
-    description: 'Best balance of intelligence and speed for professional use',
-    tags: ['Balanced', 'Precise'],
-    icon: 'psychology',
-  },
-  'claude-haiku-4-5-20251001': {
-    description: 'Fast and efficient for quick translations at lower cost',
-    tags: ['Fast', 'Efficient'],
-    icon: 'flash_on',
-  },
-}
-
-const DISPLAY_MODELS = AI_PROVIDERS.filter((p) => p.id in MODEL_META)
+const openaiModels = AI_PROVIDERS.filter((p) => p.type === 'openai')
+const anthropicModels = AI_PROVIDERS.filter((p) => p.type === 'anthropic')
 
 export default function SettingsWorkspace() {
   const { settings, updateSettings } = useSettings()
@@ -86,6 +54,45 @@ export default function SettingsWorkspace() {
     (providerType === 'openai' && hasOpenaiKey) ||
     (providerType === 'anthropic' && hasAnthropicKey)
 
+  function ModelRow({ id, name, type }: { id: string; name: string; type: 'openai' | 'anthropic' }) {
+    const isSelected = selectedModel === id
+    return (
+      <button
+        onClick={() => handleSelectModel(id, type)}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-150 cursor-pointer text-left ${
+          isSelected
+            ? 'bg-primary-fixed-dim/10 border border-primary-fixed-dim/40'
+            : 'border border-transparent hover:bg-surface-container-high/50'
+        }`}
+      >
+        {/* Radio indicator */}
+        <div
+          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+            isSelected ? 'border-primary-fixed-dim' : 'border-outline-variant/40'
+          }`}
+        >
+          {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-primary-fixed-dim" />}
+        </div>
+
+        <span
+          className={`text-sm font-headline font-semibold flex-1 ${
+            isSelected ? 'text-primary-fixed-dim' : 'text-on-surface'
+          }`}
+        >
+          {name}
+        </span>
+
+        {/* "Latest" badge for the first model in each group */}
+        {((type === 'openai' && id === openaiModels[0].id) ||
+          (type === 'anthropic' && id === anthropicModels[0].id)) && (
+          <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-secondary-fixed-dim/15 text-secondary-fixed-dim">
+            Latest
+          </span>
+        )}
+      </button>
+    )
+  }
+
   return (
     <div className="h-full overflow-y-auto px-8 py-8">
       {/* Header */}
@@ -102,7 +109,7 @@ export default function SettingsWorkspace() {
       <div className="grid grid-cols-12 gap-6">
         {/* ───── Left Column (col-span-8) ───── */}
         <div className="col-span-8 flex flex-col gap-6">
-          {/* AI Engine Panel */}
+          {/* AI Engine Panel — grouped list */}
           <div className="bg-surface-container-low rounded-[24px] border border-outline-variant/15 p-6">
             <div className="flex items-center gap-3 mb-5">
               <span className="material-symbols-outlined text-primary-fixed-dim text-2xl">
@@ -116,65 +123,36 @@ export default function SettingsWorkspace() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {DISPLAY_MODELS.map((provider) => {
-                const meta = MODEL_META[provider.id]
-                const isSelected = selectedModel === provider.id
-                return (
-                  <button
-                    key={provider.id}
-                    onClick={() => handleSelectModel(provider.id, provider.type)}
-                    className={`relative text-left p-5 rounded-2xl border transition-all duration-200 cursor-pointer ${
-                      isSelected
-                        ? 'border-primary-fixed-dim bg-primary-fixed-dim/8 shadow-[0_0_24px_rgba(174,198,255,0.08)]'
-                        : 'border-outline-variant/15 bg-surface-container hover:border-outline-variant/30 hover:bg-surface-container-high/50'
-                    }`}
-                  >
-                    {/* Checkmark */}
-                    {isSelected && (
-                      <div className="absolute top-4 right-4 w-6 h-6 rounded-full bg-primary-fixed-dim flex items-center justify-center">
-                        <span className="material-symbols-outlined text-on-primary text-sm">
-                          check
-                        </span>
-                      </div>
-                    )}
+            <div className="grid grid-cols-2 gap-6">
+              {/* OpenAI group */}
+              <div>
+                <div className="flex items-center gap-2 mb-3 px-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-secondary-fixed-dim">
+                    OpenAI
+                  </span>
+                  <div className="flex-1 h-px bg-outline-variant/15" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  {openaiModels.map((m) => (
+                    <ModelRow key={m.id} {...m} />
+                  ))}
+                </div>
+              </div>
 
-                    {/* Provider badge */}
-                    <span
-                      className={`inline-block text-[10px] uppercase tracking-widest font-bold mb-2 ${
-                        provider.type === 'openai'
-                          ? 'text-secondary-fixed-dim'
-                          : 'text-tertiary-fixed-dim'
-                      }`}
-                    >
-                      {provider.type === 'openai' ? 'OpenAI' : 'Anthropic'}
-                    </span>
-
-                    <h3 className="text-base font-headline font-bold text-on-surface mb-1">
-                      {provider.name}
-                    </h3>
-                    <p className="text-xs text-on-surface-variant/60 mb-3 leading-relaxed">
-                      {meta.description}
-                    </p>
-
-                    {/* Tags */}
-                    <div className="flex gap-2">
-                      {meta.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                            isSelected
-                              ? 'bg-primary-fixed-dim/15 text-primary-fixed-dim'
-                              : 'bg-surface-container-highest/40 text-on-surface-variant/60'
-                          }`}
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </button>
-                )
-              })}
+              {/* Anthropic group */}
+              <div>
+                <div className="flex items-center gap-2 mb-3 px-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-tertiary-fixed-dim">
+                    Anthropic
+                  </span>
+                  <div className="flex-1 h-px bg-outline-variant/15" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  {anthropicModels.map((m) => (
+                    <ModelRow key={m.id} {...m} />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -215,7 +193,6 @@ export default function SettingsWorkspace() {
             <div className="space-y-5">
               {providerType === 'openai' ? (
                 <>
-                  {/* OpenAI API Key */}
                   <div>
                     <label className="block text-xs font-label font-semibold text-on-surface-variant mb-2 tracking-wide">
                       OpenAI API Key
@@ -239,13 +216,11 @@ export default function SettingsWorkspace() {
                       </button>
                     </div>
                   </div>
-
-                  {/* OpenAI Base URL */}
                   <div>
                     <label className="block text-xs font-label font-semibold text-on-surface-variant mb-2 tracking-wide">
                       Base URL
                       <span className="text-on-surface-variant/30 ml-2 font-normal">
-                        (change for compatible APIs like Azure, Ollama, etc.)
+                        (change for Azure, Ollama, etc.)
                       </span>
                     </label>
                     <input
@@ -258,32 +233,29 @@ export default function SettingsWorkspace() {
                   </div>
                 </>
               ) : (
-                <>
-                  {/* Anthropic API Key */}
-                  <div>
-                    <label className="block text-xs font-label font-semibold text-on-surface-variant mb-2 tracking-wide">
-                      Anthropic API Key
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showAnthropicKey ? 'text' : 'password'}
-                        value={anthropicApiKey}
-                        onChange={(e) => setAnthropicApiKey(e.target.value)}
-                        placeholder="sk-ant-..."
-                        className="w-full bg-surface-container rounded-xl border border-outline-variant/15 px-4 py-3 pr-12 text-sm text-on-surface placeholder:text-on-surface-variant/30 outline-none focus:border-primary-fixed-dim/50 transition-colors"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowAnthropicKey(!showAnthropicKey)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-on-surface-variant transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-lg">
-                          {showAnthropicKey ? 'visibility_off' : 'visibility'}
-                        </span>
-                      </button>
-                    </div>
+                <div>
+                  <label className="block text-xs font-label font-semibold text-on-surface-variant mb-2 tracking-wide">
+                    Anthropic API Key
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showAnthropicKey ? 'text' : 'password'}
+                      value={anthropicApiKey}
+                      onChange={(e) => setAnthropicApiKey(e.target.value)}
+                      placeholder="sk-ant-..."
+                      className="w-full bg-surface-container rounded-xl border border-outline-variant/15 px-4 py-3 pr-12 text-sm text-on-surface placeholder:text-on-surface-variant/30 outline-none focus:border-primary-fixed-dim/50 transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowAnthropicKey(!showAnthropicKey)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-on-surface-variant transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-lg">
+                        {showAnthropicKey ? 'visibility_off' : 'visibility'}
+                      </span>
+                    </button>
                   </div>
-                </>
+                </div>
               )}
             </div>
           </div>
@@ -304,7 +276,6 @@ export default function SettingsWorkspace() {
             </div>
 
             <div className="space-y-4">
-              {/* Zero-Retention Mode */}
               <div className="flex items-center justify-between p-4 bg-surface-container rounded-xl border border-outline-variant/10">
                 <div className="pr-4">
                   <h3 className="text-sm font-label font-bold text-on-surface">
@@ -328,7 +299,6 @@ export default function SettingsWorkspace() {
                 </button>
               </div>
 
-              {/* Local Edge Processing */}
               <div className="flex items-center justify-between p-4 bg-surface-container rounded-xl border border-outline-variant/10">
                 <div className="pr-4">
                   <h3 className="text-sm font-label font-bold text-on-surface">
@@ -362,7 +332,6 @@ export default function SettingsWorkspace() {
               </span>
               <h2 className="text-lg font-headline font-bold text-on-surface">API Usage</h2>
             </div>
-
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between text-xs font-label mb-1.5">
@@ -373,7 +342,6 @@ export default function SettingsWorkspace() {
                   <div className="h-full w-0 bg-primary-fixed-dim rounded-full" />
                 </div>
               </div>
-
               <div>
                 <div className="flex justify-between text-xs font-label mb-1.5">
                   <span className="text-on-surface-variant/60">Tokens used</span>
