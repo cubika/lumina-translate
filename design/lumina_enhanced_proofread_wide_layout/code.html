@@ -1,0 +1,336 @@
+<html class="dark"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-primary-container": "#0054ba",
+            "on-background": "#e2e2e8",
+            "on-surface": "#e2e2e8",
+            "outline": "#849396",
+            "inverse-surface": "#e2e2e8",
+            "on-surface-variant": "#bac9cc",
+            "error": "#ffb4ab",
+            "surface-container-highest": "#333539",
+            "surface-variant": "#333539",
+            "tertiary": "#f2e9ff",
+            "outline-variant": "#3b494c",
+            "surface": "#111318",
+            "primary": "#e7ecff",
+            "on-tertiary-container": "#6c00f7",
+            "on-secondary-fixed": "#001f24",
+            "surface-container-lowest": "#0c0e12",
+            "surface-container": "#1e2024",
+            "on-error-container": "#ffdad6",
+            "background": "#111318",
+            "inverse-on-surface": "#2f3035",
+            "tertiary-fixed": "#e9ddff",
+            "surface-container-high": "#282a2e",
+            "tertiary-fixed-dim": "#d1bcff",
+            "secondary-fixed": "#9cf0ff",
+            "on-primary-fixed": "#001a43",
+            "on-secondary-fixed-variant": "#004f58",
+            "on-tertiary": "#3c0090",
+            "on-secondary-container": "#00616d",
+            "on-error": "#690005",
+            "primary-fixed-dim": "#aec6ff",
+            "on-tertiary-fixed-variant": "#5700c9",
+            "primary-container": "#bed0ff",
+            "secondary-fixed-dim": "#00daf3",
+            "secondary": "#bdf4ff",
+            "surface-bright": "#37393e",
+            "surface-container-low": "#1a1c20",
+            "surface-tint": "#aec6ff",
+            "on-primary": "#002e6b",
+            "primary-fixed": "#d8e2ff",
+            "error-container": "#93000a",
+            "on-primary-fixed-variant": "#004397",
+            "surface-dim": "#111318",
+            "tertiary-container": "#d9c8ff",
+            "secondary-container": "#00e3fd",
+            "on-secondary": "#00363d",
+            "inverse-primary": "#0059c5",
+            "on-tertiary-fixed": "#23005b"
+          },
+          fontFamily: {
+            "headline": ["Inter"],
+            "body": ["Inter"],
+            "label": ["Manrope"]
+          },
+          borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+        },
+      },
+    }
+  </script>
+<style>
+    .glass-panel {
+      backdrop-filter: blur(24px);
+      background: rgba(51, 53, 57, 0.4);
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #111318;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #3b494c;
+      border-radius: 10px;
+    }
+
+    /* Fixed resolution container for 1440x900 simulation */
+    .viewport-container {
+      width: 1440px;
+      height: 900px;
+      margin: 0 auto;
+      overflow: hidden;
+      position: relative;
+    }
+  </style>
+</head>
+<body class="bg-[#0c0e12] text-on-surface font-body selection:bg-primary-fixed-dim selection:text-on-primary-fixed min-h-screen flex items-center justify-center">
+<div class="viewport-container bg-surface shadow-2xl flex">
+<!-- SideNavBar (Standardized) -->
+<aside class="h-full w-64 flex-shrink-0 bg-[#111318] border-r border-[#3b494c]/15 flex flex-col py-8 justify-between font-['Manrope'] font-medium text-sm tracking-wide">
+<div class="space-y-8">
+<div class="px-6">
+<h1 class="font-black text-[#aec6ff] tracking-tighter text-2xl">Lumina</h1>
+<p class="text-[#e2e2e8]/40 text-xs mt-1">Pro Plan</p>
+</div>
+<nav class="flex flex-col">
+<a class="text-[#e2e2e8]/40 py-3 px-6 flex items-center gap-3 hover:text-[#e2e2e8]/80 hover:bg-[#1a1c20] transition-all cursor-pointer" href="#">
+<span class="material-symbols-outlined" data-icon="translate">translate</span>
+<span>Translate</span>
+</a>
+<a class="bg-gradient-to-r from-[#aec6ff]/10 to-transparent text-[#aec6ff] border-l-4 border-[#aec6ff] py-3 px-6 flex items-center gap-3 cursor-pointer transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="spellcheck">spellcheck</span>
+<span>Proofread</span>
+</a>
+<a class="text-[#e2e2e8]/40 py-3 px-6 flex items-center gap-3 hover:text-[#e2e2e8]/80 hover:bg-[#1a1c20] transition-all cursor-pointer" href="#">
+<span class="material-symbols-outlined" data-icon="menu_book">menu_book</span>
+<span>Dictionary</span>
+</a>
+<a class="text-[#e2e2e8]/40 py-3 px-6 flex items-center gap-3 hover:text-[#e2e2e8]/80 hover:bg-[#1a1c20] transition-all cursor-pointer" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span>Documents</span>
+</a>
+</nav>
+</div>
+<div class="flex flex-col border-t border-[#3b494c]/15 pt-4">
+<a class="text-[#e2e2e8]/40 py-3 px-6 flex items-center gap-3 hover:text-[#e2e2e8]/80 hover:bg-[#1a1c20] transition-all cursor-pointer" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+<div class="px-6 mt-4 flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary-fixed-dim to-on-primary-container flex items-center justify-center text-[10px] font-bold text-white shadow-lg">JD</div>
+<div class="overflow-hidden">
+<p class="text-xs font-bold truncate">James Doe</p>
+<p class="text-[10px] text-on-surface-variant truncate">james@lumina.ai</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Workspace -->
+<main class="flex-1 flex flex-col relative h-full">
+<!-- TopAppBar -->
+<header class="h-16 px-8 flex justify-between items-center bg-[#1a1c20]/40 backdrop-blur-3xl border-b border-[#3b494c]/15">
+<div class="flex items-center gap-4">
+<h2 class="font-semibold tracking-tight text-lg text-[#aec6ff]">Proofread Workspace</h2>
+<div class="h-4 w-[1px] bg-outline-variant/30"></div>
+<span class="font-label text-xs text-on-surface-variant bg-surface-container-high px-3 py-1 rounded-full">Project: Alpha_Launch_v2.docx</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center bg-surface-container-high/50 rounded-xl px-4 py-2 gap-2 border border-outline-variant/10">
+<span class="material-symbols-outlined text-secondary-fixed-dim text-sm" data-icon="auto_awesome" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<span class="text-xs font-label font-bold text-secondary-fixed-dim">AI Optimization Active</span>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-[#333539]/50 transition-all text-[#aec6ff]">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Content Area -->
+<div class="flex-1 flex min-h-0 relative">
+<!-- Text Comparison (Side-by-Side) -->
+<div class="flex-1 flex flex-col p-8 pr-4 gap-8 overflow-hidden">
+<div class="flex-1 grid grid-cols-2 gap-8 min-h-0">
+<!-- Original Text -->
+<div class="flex flex-col gap-4">
+<div class="flex justify-between items-center px-1">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-outline"></span>
+<span class="font-label text-xs font-bold uppercase tracking-widest text-on-surface-variant">Original Source</span>
+</div>
+<span class="text-[10px] text-on-surface-variant/60 font-label">344 Words</span>
+</div>
+<div class="flex-1 glass-panel rounded-[2rem] p-10 overflow-y-auto border border-outline-variant/10 shadow-inner">
+<div class="max-w-2xl mx-auto prose prose-invert">
+<p class="mb-8 text-lg leading-[1.8] text-on-surface-variant/90">
+                    Our recent analysis of the user experience indicates that <span class="bg-error/20 border-b-2 border-error text-on-background px-1.5 py-0.5 rounded-sm cursor-help">the interface represent</span> a significant leap forward in cognitive accessibility.
+                  </p>
+<p class="mb-8 text-lg leading-[1.8] text-on-surface-variant/90">
+                    However, <span class="bg-primary-fixed-dim/20 border-b-2 border-primary-fixed-dim text-on-background px-1.5 py-0.5 rounded-sm cursor-help">the complexity of the workflows might be overwhelming</span> for novice users who are unfamiliar with professional translation suites.
+                  </p>
+<p class="mb-8 text-lg leading-[1.8] text-on-surface-variant/90">
+                    We recommend that we <span class="bg-error/20 border-b-2 border-error text-on-background px-1.5 py-0.5 rounded-sm cursor-help">implimenting</span> a guided onboarding process that focuses on the core features first before introducing advanced settings.
+                  </p>
+<p class="text-lg leading-[1.8] text-on-surface-variant/90">
+                    In conclusion, the data <span class="bg-error/20 border-b-2 border-error text-on-background px-1.5 py-0.5 rounded-sm cursor-help">suggests</span> that while the engine is powerful, the human-machine interface needs further refinement to ensure seamless adoption across all user segments.
+                  </p>
+</div>
+</div>
+</div>
+<!-- Corrected Text -->
+<div class="flex flex-col gap-4">
+<div class="flex justify-between items-center px-1">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary-fixed-dim shadow-[0_0_8px_rgba(0,218,243,0.5)]"></span>
+<span class="font-label text-xs font-bold uppercase tracking-widest text-secondary-fixed-dim">AI Corrected View</span>
+</div>
+<div class="flex gap-2">
+<button class="text-xs bg-surface-container-high/80 px-4 py-1.5 rounded-lg hover:bg-surface-container-highest transition-colors font-label border border-outline-variant/10">Copy</button>
+<button class="text-xs bg-gradient-to-br from-primary-fixed-dim to-on-primary-container text-white px-4 py-1.5 rounded-lg font-bold font-label shadow-lg hover:brightness-110 transition-all">Apply All Changes</button>
+</div>
+</div>
+<div class="flex-1 bg-surface-container-low rounded-[2rem] p-10 overflow-y-auto border border-outline-variant/20 shadow-xl">
+<div class="max-w-2xl mx-auto">
+<p class="mb-8 text-lg leading-[1.8] text-on-surface">
+                    Our recent analysis of the user experience indicates that <span class="text-secondary-fixed-dim font-bold underline underline-offset-4 decoration-secondary-fixed-dim/40">the interface represents</span> a significant leap forward in cognitive accessibility.
+                  </p>
+<p class="mb-8 text-lg leading-[1.8] text-on-surface">
+                    However, <span class="text-secondary-fixed-dim font-bold italic underline underline-offset-4 decoration-secondary-fixed-dim/40">the intricate workflows may prove overwhelming</span> for novice users who are unfamiliar with professional translation suites.
+                  </p>
+<p class="mb-8 text-lg leading-[1.8] text-on-surface">
+                    We recommend <span class="text-secondary-fixed-dim font-bold underline underline-offset-4 decoration-secondary-fixed-dim/40">implementing</span> a guided onboarding process that focuses on the core features first before introducing advanced settings.
+                  </p>
+<p class="text-lg leading-[1.8] text-on-surface">
+                    In conclusion, the data <span class="text-on-surface font-bold">suggest</span> that while the engine is powerful, the human-machine interface needs further refinement to ensure seamless adoption across all user segments.
+                  </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Horizontal Utility Toolbar -->
+<div class="h-24 glass-panel rounded-[2rem] flex items-center justify-between px-10 border border-outline-variant/10 shadow-xl">
+<div class="flex items-center gap-10">
+<div class="flex flex-col">
+<span class="text-[10px] font-label font-bold text-on-surface-variant/50 uppercase tracking-widest mb-1">Readability Index</span>
+<div class="flex items-baseline gap-2">
+<span class="text-2xl font-black text-secondary-fixed-dim">84</span>
+<span class="text-xs text-on-surface-variant/40">/ 100</span>
+</div>
+</div>
+<div class="h-10 w-[1px] bg-outline-variant/20"></div>
+<div class="flex gap-3">
+<div class="w-2.5 h-2.5 rounded-full bg-error animate-pulse mt-2"></div>
+<div class="flex flex-col">
+<span class="text-[10px] font-label font-bold text-on-surface-variant/50 uppercase tracking-widest mb-1">Issue Count</span>
+<span class="text-lg font-bold">3 Potential Errors</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-12 h-12 flex items-center justify-center rounded-2xl bg-surface-container-highest text-on-surface hover:bg-surface-bright transition-all border border-outline-variant/10">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+</button>
+<button class="w-12 h-12 flex items-center justify-center rounded-2xl bg-surface-container-highest text-on-surface hover:bg-surface-bright transition-all border border-outline-variant/10">
+<span class="material-symbols-outlined" data-icon="share">share</span>
+</button>
+<button class="flex items-center gap-3 px-8 h-12 bg-gradient-to-br from-[#aec6ff] to-[#0054ba] rounded-2xl text-on-primary-fixed font-bold shadow-2xl hover:scale-[1.02] active:scale-95 transition-all">
+<span class="material-symbols-outlined" data-icon="download" style="font-variation-settings: 'wght' 600;">download</span>
+<span>Export Final</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Right Insights Sidebar -->
+<aside class="w-[380px] h-full flex flex-col border-l border-[#3b494c]/15 bg-surface-container-low/30 p-8 gap-6 overflow-hidden">
+<div class="flex items-center justify-between">
+<h3 class="font-headline font-bold text-lg">Detailed Insights</h3>
+<span class="text-[10px] bg-surface-container-high px-2 py-1 rounded-md text-on-surface-variant border border-outline-variant/20 font-mono">v4.2 Pulse</span>
+</div>
+<div class="flex-1 flex flex-col gap-5 overflow-y-auto pr-2 custom-scrollbar">
+<!-- Card 1 -->
+<div class="bg-surface-container-high/40 border border-outline-variant/10 rounded-3xl p-6 flex flex-col gap-4 group hover:border-error/30 transition-all shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-error/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-error text-lg" data-icon="error" style="font-variation-settings: 'FILL' 1;">error</span>
+</div>
+<span class="font-label text-xs font-bold text-error uppercase tracking-wider">Grammar Fix</span>
+</div>
+<span class="text-[10px] text-on-surface-variant/40 bg-surface-container-highest px-2 py-0.5 rounded-full">Critical</span>
+</div>
+<div>
+<p class="text-[13px] text-on-surface-variant mb-2">Subject-verb agreement: "interface" is singular.</p>
+<div class="flex items-center gap-3 bg-surface-container-lowest/50 p-3 rounded-2xl border border-outline-variant/5">
+<span class="text-on-surface-variant/50 line-through text-sm font-medium">represent</span>
+<span class="material-symbols-outlined text-on-surface-variant/30 text-xs" data-icon="arrow_forward">arrow_forward</span>
+<span class="text-secondary-fixed-dim text-sm font-bold">represents</span>
+</div>
+</div>
+<button class="w-full py-3 rounded-xl bg-surface-container-highest font-label text-xs font-bold hover:bg-on-surface hover:text-surface transition-all">Accept Change</button>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-high/40 border border-outline-variant/10 rounded-3xl p-6 flex flex-col gap-4 group hover:border-primary-fixed-dim/30 transition-all shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-primary-fixed-dim/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary-fixed-dim text-lg" data-icon="auto_fix_high" style="font-variation-settings: 'FILL' 1;">auto_fix_high</span>
+</div>
+<span class="font-label text-xs font-bold text-primary-fixed-dim uppercase tracking-wider">Tone &amp; Style</span>
+</div>
+<span class="text-[10px] text-on-surface-variant/40 bg-surface-container-highest px-2 py-0.5 rounded-full">Optimal</span>
+</div>
+<p class="text-sm font-bold leading-tight">"Intricate workflows may prove..."</p>
+<p class="text-[12px] text-on-surface-variant/60 leading-relaxed italic">
+                Replacing "complexity" with "intricate" enhances the professional tone without diminishing the technical value.
+              </p>
+<div class="flex gap-2">
+<button class="flex-1 py-3 rounded-xl bg-surface-container-highest font-label text-xs font-bold hover:bg-primary-fixed-dim hover:text-on-primary-fixed transition-all">Apply Rewrite</button>
+<button class="w-12 h-12 flex items-center justify-center rounded-xl bg-surface-container-highest hover:bg-error/10 hover:text-error transition-all">
+<span class="material-symbols-outlined text-sm" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-high/40 border border-outline-variant/10 rounded-3xl p-6 flex flex-col gap-4 group hover:border-error/30 transition-all shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-error/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-error text-lg" data-icon="spellcheck" style="font-variation-settings: 'FILL' 1;">spellcheck</span>
+</div>
+<span class="font-label text-xs font-bold text-error uppercase tracking-wider">Spelling</span>
+</div>
+</div>
+<div class="flex items-center gap-3 bg-surface-container-lowest/50 p-3 rounded-2xl border border-outline-variant/5">
+<span class="text-on-surface-variant/50 line-through text-sm font-medium">implimenting</span>
+<span class="material-symbols-outlined text-on-surface-variant/30 text-xs" data-icon="arrow_forward">arrow_forward</span>
+<span class="text-secondary-fixed-dim text-sm font-bold">implementing</span>
+</div>
+<button class="w-full py-3 rounded-xl bg-surface-container-highest font-label text-xs font-bold hover:bg-on-surface hover:text-surface transition-all">Accept Change</button>
+</div>
+</div>
+</aside>
+</div>
+</main>
+<!-- Background Decoration -->
+<div class="absolute inset-0 -z-10 pointer-events-none opacity-10">
+<div class="absolute top-[-15%] left-[-15%] w-[60%] h-[60%] bg-primary-fixed-dim blur-[180px] rounded-full animate-pulse"></div>
+<div class="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-secondary-fixed-dim blur-[180px] rounded-full"></div>
+</div>
+</div>
+</body></html>
