@@ -128,9 +128,14 @@ async function callAI(
   }
 }
 
-function stripMarkdownFences(text: string): string {
-  const match = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/)
-  return match ? match[1].trim() : text.trim()
+function extractJSON(text: string): string {
+  // Strip markdown code fences (handles various formats)
+  const fenceMatch = text.match(/```\w*\s*([\s\S]*?)\s*```/)
+  if (fenceMatch) return fenceMatch[1].trim()
+  // Try to extract bare JSON object
+  const jsonMatch = text.match(/\{[\s\S]*\}/)
+  if (jsonMatch) return jsonMatch[0]
+  return text.trim()
 }
 
 export async function translate(req: TranslationRequest): Promise<string> {
@@ -160,7 +165,7 @@ Return ONLY valid JSON, no markdown fences.`
 
   const result = await callAI(messages, req.model, req.providerType, systemMsg)
   try {
-    return JSON.parse(stripMarkdownFences(result))
+    return JSON.parse(extractJSON(result))
   } catch {
     return { corrected: result, issues: [] }
   }
@@ -198,7 +203,7 @@ Return ONLY valid JSON, no markdown fences.`
 
   const result = await callAI(messages, req.model, req.providerType, systemMsg)
   try {
-    return JSON.parse(stripMarkdownFences(result))
+    return JSON.parse(extractJSON(result))
   } catch {
     return {
       word: req.word,

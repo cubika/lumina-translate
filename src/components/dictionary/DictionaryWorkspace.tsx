@@ -244,11 +244,11 @@ export default function DictionaryWorkspace() {
 
       {/* Bento Grid */}
       {result && (
-        <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
-          {/* Left Column - col-span-5 */}
-          <div className="col-span-5 flex flex-col gap-4 overflow-y-auto pr-1">
+        <div className="flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto">
+          {/* Top Row: Definition + Synonyms/Antonyms */}
+          <div className="grid grid-cols-12 gap-4">
             {/* Main Definition Card */}
-            <div className="liquid-glass rounded-[2rem] ghost-border p-8 flex flex-col gap-5">
+            <div className="col-span-7 liquid-glass rounded-[2rem] ghost-border p-8 flex flex-col gap-5">
               <div className="flex items-start justify-between">
                 <div className="flex flex-col gap-1">
                   <h2 className="text-4xl font-headline font-black tracking-tight text-on-surface">
@@ -310,37 +310,10 @@ export default function DictionaryWorkspace() {
               </div>
             </div>
 
-            {/* Context Usage Card */}
-            {result.examples.length > 0 && (
-              <div className="liquid-glass rounded-[2rem] ghost-border p-6 flex flex-col gap-4">
-                <h3 className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/50 font-label font-semibold flex items-center gap-2">
-                  <span className="material-symbols-outlined text-base text-primary-fixed-dim/60">
-                    format_quote
-                  </span>
-                  Context Usage
-                </h3>
-                <div className="flex flex-col gap-3">
-                  {result.examples.map((example, i) => (
-                    <div
-                      key={i}
-                      className="bg-surface-container/60 rounded-2xl p-4 border-l-2 border-primary-fixed-dim/20"
-                    >
-                      <p className="text-on-surface/70 text-sm font-body leading-relaxed">
-                        {highlightWordInText(example, result.word)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Right Column - col-span-7 */}
-          <div className="col-span-7 flex flex-col gap-4 overflow-y-auto pl-1">
-            {/* Synonyms & Antonyms Grid */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Synonyms & Antonyms - stacked */}
+            <div className="col-span-5 flex flex-col gap-4">
               {/* Synonyms */}
-              <div className="liquid-glass rounded-[2rem] ghost-border p-6 flex flex-col gap-4">
+              <div className="liquid-glass rounded-[2rem] ghost-border p-6 flex flex-col gap-4 flex-1">
                 <h3 className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/50 font-label font-semibold flex items-center gap-2">
                   <span className="material-symbols-outlined text-base text-primary-fixed-dim/60">
                     link
@@ -367,7 +340,7 @@ export default function DictionaryWorkspace() {
               </div>
 
               {/* Antonyms */}
-              <div className="liquid-glass rounded-[2rem] ghost-border p-6 flex flex-col gap-4">
+              <div className="liquid-glass rounded-[2rem] ghost-border p-6 flex flex-col gap-4 flex-1">
                 <h3 className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/50 font-label font-semibold flex items-center gap-2">
                   <span className="material-symbols-outlined text-base text-secondary-fixed-dim/60">
                     swap_horiz
@@ -393,8 +366,31 @@ export default function DictionaryWorkspace() {
                 </div>
               </div>
             </div>
-
           </div>
+
+          {/* Context Usage - full width */}
+          {result.examples.length > 0 && (
+            <div className="liquid-glass rounded-[2rem] ghost-border p-6 flex flex-col gap-4">
+              <h3 className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/50 font-label font-semibold flex items-center gap-2">
+                <span className="material-symbols-outlined text-base text-primary-fixed-dim/60">
+                  format_quote
+                </span>
+                Context Usage
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                {result.examples.map((example, i) => (
+                  <div
+                    key={i}
+                    className="bg-surface-container/60 rounded-2xl p-4 border-l-2 border-primary-fixed-dim/20"
+                  >
+                    <p className="text-on-surface/70 text-sm font-body leading-relaxed">
+                      {highlightWordInText(example, result.word)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

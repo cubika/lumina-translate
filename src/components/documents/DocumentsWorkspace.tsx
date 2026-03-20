@@ -1,37 +1,88 @@
 import { useState, useRef, useCallback } from 'react'
+import { translate } from '../../services/ai'
+import { loadSettings, LANGUAGES } from '../../services/settings'
 
-interface RecentTranslation {
+interface TranslatedDoc {
   id: number
   name: string
-  icon: string
   from: string
   to: string
   status: 'Ready' | 'Translating' | 'Failed'
   date: string
   size: string
+  originalText: string
+  translatedText: string
+  error?: string
 }
 
-const recentTranslations: RecentTranslation[] = [
-  { id: 1, name: 'Annual_Report_2025.pdf', icon: 'picture_as_pdf', from: 'EN', to: 'JP', status: 'Ready', date: '2026-03-18', size: '4.2 MB' },
-  { id: 2, name: 'Product_Spec.docx', icon: 'description', from: 'EN', to: 'DE', status: 'Ready', date: '2026-03-17', size: '1.8 MB' },
-  { id: 3, name: 'Financial_Summary.xlsx', icon: 'table_chart', from: 'EN', to: 'FR', status: 'Translating', date: '2026-03-17', size: '3.1 MB' },
-  { id: 4, name: 'Marketing_Deck.pptx', icon: 'slideshow', from: 'EN', to: 'KO', status: 'Ready', date: '2026-03-16', size: '12.5 MB' },
-  { id: 5, name: 'User_Manual.pdf', icon: 'picture_as_pdf', from: 'EN', to: 'ZH', status: 'Failed', date: '2026-03-15', size: '8.7 MB' },
-]
-
-const supportedFormats = ['PDF', 'DOCX', 'XLSX', 'PPTX', 'TXT', 'CSV']
+const supportedFormats = ['TXT', 'MD', 'CSV', 'JSON', 'SRT']
 
 export default function DocumentsWorkspace() {
-  const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [docs, setDocs] = useState<TranslatedDoc[]>([])
+  const [sourceLang, setSourceLang] = useState(() => loadSettings().sourceLang)
+  const [targetLang, setTargetLang] = useState(() => loadSettings().targetLang)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setSelectedFile(file.name)
-    }
-  }, [])
+  const processFile = useCallback(
+    async (file: File) => {
+      const settings = loadSettings()
+      const text = await file.text()
+      const docId = Date.now()
+      const sizeKB = (file.size / 1024).toFixed(1)
+      const sizeLabel = file.size >= 1024 * 1024
+        ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+        : `${sizeKB} KB`
+
+      const newDoc: TranslatedDoc = {
+        id: docId,
+        name: file.name,
+        from: sourceLang,
+        to: targetLang,
+        status: 'Translating',
+        date: new Date().toISOString().slice(0, 10),
+        size: sizeLabel,
+        originalText: text,
+        translatedText: '',
+      }
+
+      setDocs((prev) => [newDoc, ...prev])
+
+      try {
+        const result = await translate({
+          text,
+          sourceLang,
+          targetLang,
+          model: settings.selectedModel,
+          providerType: settings.providerType,
+        })
+
+        setDocs((prev) =>
+          prev.map((d) =>
+            d.id === docId ? { ...d, status: 'Ready', translatedText: result } : d,
+          ),
+        )
+      } catch (err) {
+        setDocs((prev) =>
+          prev.map((d) =>
+            d.id === docId
+              ? { ...d, status: 'Failed', error: err instanceof Error ? err.message : 'Translation failed' }
+              : d,
+          ),
+        )
+      }
+    },
+    [sourceLang, targetLang],
+  )
+
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (file) processFile(file)
+      e.target.value = ''
+    },
+    [processFile],
+  )
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -45,17 +96,34 @@ export default function DocumentsWorkspace() {
     setIsDragOver(false)
   }, [])
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragOver(false)
-    const file = e.dataTransfer.files?.[0]
-    if (file) {
-      setSelectedFile(file.name)
-    }
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      setIsDragOver(false)
+      const file = e.dataTransfer.files?.[0]
+      if (file) processFile(file)
+    },
+    [processFile],
+  )
+
+  const handleDownload = useCallback((doc: TranslatedDoc) => {
+    const ext = doc.name.lastIndexOf('.') >= 0 ? doc.name.slice(doc.name.lastIndexOf('.')) : '.txt'
+    const baseName = doc.name.replace(/\.[^.]+$/, '')
+    const blob = new Blob([doc.translatedText], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${baseName}_${doc.to}${ext}`
+    a.click()
+    URL.revokeObjectURL(url)
   }, [])
 
-  const statusColor = (status: RecentTranslation['status']) => {
+  const handleDelete = useCallback((id: number) => {
+    setDocs((prev) => prev.filter((d) => d.id !== id))
+  }, [])
+
+  const statusColor = (status: TranslatedDoc['status']) => {
     switch (status) {
       case 'Ready':
         return 'bg-green-500/15 text-green-400 border border-green-500/20'
@@ -75,7 +143,7 @@ export default function DocumentsWorkspace() {
             Document Hub
           </h1>
           <p className="text-[11px] uppercase tracking-[0.25em] text-on-surface-variant/50 mt-2 font-label">
-            Preserve Formatting with AI Precision
+            Translate entire documents with AI
           </p>
         </div>
 
@@ -92,38 +160,36 @@ export default function DocumentsWorkspace() {
                   ? 'border-primary-fixed-dim/60 shadow-[0_0_40px_rgba(174,198,255,0.12)]'
                   : 'border-outline-variant/10 hover:border-outline-variant/20'
               }`}
-              style={{ height: 420 }}
+              style={{ height: 380 }}
             >
-              {/* Subtle gradient overlay on drag */}
               {isDragOver && (
                 <div className="absolute inset-0 bg-gradient-to-br from-primary-fixed-dim/5 to-transparent pointer-events-none" />
               )}
 
               <div className="flex flex-col items-center justify-center h-full px-8 relative z-10">
-                {/* Upload icon */}
-                <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-6 transition-all duration-300 ${
-                  isDragOver
-                    ? 'bg-primary-fixed-dim/15 scale-110'
-                    : 'bg-surface-container-high/60'
-                }`}>
-                  <span className={`material-symbols-outlined text-5xl transition-colors duration-300 ${
-                    isDragOver ? 'text-primary-fixed-dim' : 'text-on-surface-variant/60'
-                  }`}>
+                <div
+                  className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-6 transition-all duration-300 ${
+                    isDragOver
+                      ? 'bg-primary-fixed-dim/15 scale-110'
+                      : 'bg-surface-container-high/60'
+                  }`}
+                >
+                  <span
+                    className={`material-symbols-outlined text-5xl transition-colors duration-300 ${
+                      isDragOver ? 'text-primary-fixed-dim' : 'text-on-surface-variant/60'
+                    }`}
+                  >
                     cloud_upload
                   </span>
                 </div>
 
-                {/* Text */}
                 <h3 className="text-xl font-semibold text-on-surface mb-2 font-headline">
-                  {selectedFile ? selectedFile : 'Drop files here to translate'}
+                  Drop files here to translate
                 </h3>
                 <p className="text-sm text-on-surface-variant/50 mb-8">
-                  {selectedFile
-                    ? 'File selected — ready to translate'
-                    : 'Drag and drop your documents, or use the buttons below'}
+                  Drag and drop your text documents, or click to browse
                 </p>
 
-                {/* Action buttons */}
                 <div className="flex items-center gap-3 mb-8">
                   <button
                     onClick={() => fileInputRef.current?.click()}
@@ -139,22 +205,15 @@ export default function DocumentsWorkspace() {
                     type="file"
                     className="hidden"
                     onChange={handleFileSelect}
-                    accept=".pdf,.docx,.xlsx,.pptx,.txt,.csv"
+                    accept=".txt,.md,.csv,.json,.srt"
                   />
-                  <button className="px-6 py-2.5 rounded-full bg-surface-container-high/70 border border-outline-variant/15 text-sm font-semibold text-on-surface hover:bg-surface-container-highest/50 transition-all duration-300 active:scale-[0.97] cursor-pointer">
-                    <span className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-lg">cloud</span>
-                      Cloud Import
-                    </span>
-                  </button>
                 </div>
 
-                {/* Feature badges */}
                 <div className="flex items-center gap-3">
                   {[
-                    { icon: 'storage', label: 'Max 50MB' },
-                    { icon: 'document_scanner', label: 'OCR Enabled' },
-                    { icon: 'language', label: '100+ Languages' },
+                    { icon: 'text_snippet', label: 'Text-based files' },
+                    { icon: 'language', label: `${LANGUAGES.length} Languages` },
+                    { icon: 'speed', label: 'AI-powered' },
                   ].map((badge) => (
                     <span
                       key={badge.label}
@@ -169,33 +228,52 @@ export default function DocumentsWorkspace() {
             </div>
           </div>
 
-          {/* Right: Stacked cards */}
+          {/* Right: Config cards */}
           <div className="col-span-4 flex flex-col gap-5">
-            {/* Current Plan card */}
+            {/* Language Selection */}
             <div className="glass-panel rounded-2xl border border-outline-variant/10 p-6 flex-1">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-xs uppercase tracking-[0.15em] text-on-surface-variant/50 font-label font-semibold">
-                  Current Plan
+                  Translation Languages
                 </h4>
-                <span className="material-symbols-outlined text-primary-fixed-dim text-xl">workspace_premium</span>
+                <span className="material-symbols-outlined text-primary-fixed-dim text-xl">
+                  translate
+                </span>
               </div>
-              <p className="text-2xl font-bold text-on-surface font-headline mb-1">Professional</p>
-              <p className="text-xs text-on-surface-variant/50 mb-5">Unlimited document translations</p>
-
-              {/* Usage bar */}
-              <div className="mb-2">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-on-surface-variant/60 font-label">Monthly Usage</span>
-                  <span className="text-xs font-semibold text-primary-fixed-dim font-label">82%</span>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[11px] text-on-surface-variant/40 font-label mb-1.5">
+                    From
+                  </label>
+                  <select
+                    value={sourceLang}
+                    onChange={(e) => setSourceLang(e.target.value)}
+                    className="w-full bg-surface-container rounded-xl border border-outline-variant/15 px-3 py-2.5 text-sm text-on-surface outline-none focus:border-primary-fixed-dim/50 transition-colors cursor-pointer"
+                  >
+                    {LANGUAGES.map((lang) => (
+                      <option key={lang} value={lang}>
+                        {lang}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <div className="h-2 rounded-full bg-surface-container-highest/50 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-primary-fixed-dim to-secondary-fixed-dim transition-all duration-700"
-                    style={{ width: '82%' }}
-                  />
+                <div>
+                  <label className="block text-[11px] text-on-surface-variant/40 font-label mb-1.5">
+                    To
+                  </label>
+                  <select
+                    value={targetLang}
+                    onChange={(e) => setTargetLang(e.target.value)}
+                    className="w-full bg-surface-container rounded-xl border border-outline-variant/15 px-3 py-2.5 text-sm text-on-surface outline-none focus:border-primary-fixed-dim/50 transition-colors cursor-pointer"
+                  >
+                    {LANGUAGES.map((lang) => (
+                      <option key={lang} value={lang}>
+                        {lang}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
-              <p className="text-[11px] text-on-surface-variant/40">41 of 50 documents used this month</p>
             </div>
 
             {/* Supported Formats card */}
@@ -204,7 +282,9 @@ export default function DocumentsWorkspace() {
                 <h4 className="text-xs uppercase tracking-[0.15em] text-on-surface-variant/50 font-label font-semibold">
                   Supported Formats
                 </h4>
-                <span className="material-symbols-outlined text-secondary-fixed-dim text-xl">extension</span>
+                <span className="material-symbols-outlined text-secondary-fixed-dim text-xl">
+                  extension
+                </span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {supportedFormats.map((fmt) => (
@@ -217,127 +297,123 @@ export default function DocumentsWorkspace() {
                 ))}
               </div>
               <p className="text-[11px] text-on-surface-variant/40 mt-4">
-                All formats preserve original layout, fonts, and styling after translation.
+                Text-based files are translated while preserving structure and formatting.
               </p>
             </div>
           </div>
         </div>
 
         {/* Recent Translations */}
-        <div className="glass-panel rounded-2xl border border-outline-variant/10 mb-10">
-          <div className="px-6 py-5 border-b border-outline-variant/10 flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-on-surface font-headline">Recent Translations</h3>
-              <p className="text-xs text-on-surface-variant/50 mt-0.5">{recentTranslations.length} documents processed</p>
-            </div>
-            <button className="px-4 py-2 rounded-full bg-surface-container-high/50 border border-outline-variant/10 text-xs font-semibold text-on-surface-variant/70 hover:text-on-surface hover:bg-surface-container-highest/50 transition-all duration-200 cursor-pointer">
-              View All
-            </button>
-          </div>
-
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-outline-variant/10">
-                <th className="text-left px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] text-on-surface-variant/40 font-label font-semibold">
-                  Document Name
-                </th>
-                <th className="text-left px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] text-on-surface-variant/40 font-label font-semibold">
-                  Language
-                </th>
-                <th className="text-left px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] text-on-surface-variant/40 font-label font-semibold">
-                  Status
-                </th>
-                <th className="text-right px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] text-on-surface-variant/40 font-label font-semibold">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentTranslations.map((doc) => (
-                <tr
-                  key={doc.id}
-                  className="border-b border-outline-variant/5 hover:bg-surface-container-low/30 transition-colors duration-150"
-                >
-                  {/* Document Name */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-surface-container-high/60 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-lg text-primary-fixed-dim/80">{doc.icon}</span>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-on-surface">{doc.name}</p>
-                        <p className="text-[11px] text-on-surface-variant/40">{doc.size} &middot; {doc.date}</p>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Language */}
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high/50 border border-outline-variant/10 text-xs font-semibold text-on-surface-variant/80 font-label">
-                      {doc.from}
-                      <span className="material-symbols-outlined text-sm text-primary-fixed-dim/60">arrow_forward</span>
-                      {doc.to}
-                    </span>
-                  </td>
-
-                  {/* Status */}
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold font-label ${statusColor(doc.status)}`}>
-                      {doc.status === 'Translating' && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-secondary-fixed-dim animate-pulse" />
-                      )}
-                      {doc.status === 'Failed' && (
-                        <span className="material-symbols-outlined text-sm">error</span>
-                      )}
-                      {doc.status}
-                    </span>
-                  </td>
-
-                  {/* Actions */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-container-highest/40 transition-colors duration-150 cursor-pointer"
-                        title="Download"
-                      >
-                        <span className="material-symbols-outlined text-lg text-on-surface-variant/50 hover:text-primary-fixed-dim">download</span>
-                      </button>
-                      <button
-                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-container-highest/40 transition-colors duration-150 cursor-pointer"
-                        title="View"
-                      >
-                        <span className="material-symbols-outlined text-lg text-on-surface-variant/50 hover:text-primary-fixed-dim">visibility</span>
-                      </button>
-                      <button
-                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-error/10 transition-colors duration-150 cursor-pointer"
-                        title="Delete"
-                      >
-                        <span className="material-symbols-outlined text-lg text-on-surface-variant/50 hover:text-error">delete</span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Footer */}
-        <footer className="flex items-center justify-between py-6 border-t border-outline-variant/10">
-          <p className="text-xs text-on-surface-variant/30 font-label">
-            &copy; 2026 Lumina Translate. All rights reserved.
-          </p>
-          <div className="flex items-center gap-6">
-            {['Privacy', 'Terms', 'API Docs'].map((link) => (
+        {docs.length > 0 && (
+          <div className="glass-panel rounded-2xl border border-outline-variant/10 mb-10">
+            <div className="px-6 py-5 border-b border-outline-variant/10 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-on-surface font-headline">
+                  Translations
+                </h3>
+                <p className="text-xs text-on-surface-variant/50 mt-0.5">
+                  {docs.length} document{docs.length !== 1 ? 's' : ''} processed
+                </p>
+              </div>
               <button
-                key={link}
-                className="text-xs text-on-surface-variant/40 hover:text-primary-fixed-dim transition-colors duration-200 cursor-pointer font-label"
+                onClick={() => setDocs([])}
+                className="px-4 py-2 rounded-full bg-surface-container-high/50 border border-outline-variant/10 text-xs font-semibold text-on-surface-variant/70 hover:text-on-surface hover:bg-surface-container-highest/50 transition-all duration-200 cursor-pointer"
               >
-                {link}
+                Clear All
               </button>
-            ))}
+            </div>
+
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-outline-variant/10">
+                  <th className="text-left px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] text-on-surface-variant/40 font-label font-semibold">
+                    Document Name
+                  </th>
+                  <th className="text-left px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] text-on-surface-variant/40 font-label font-semibold">
+                    Language
+                  </th>
+                  <th className="text-left px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] text-on-surface-variant/40 font-label font-semibold">
+                    Status
+                  </th>
+                  <th className="text-right px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] text-on-surface-variant/40 font-label font-semibold">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {docs.map((doc) => (
+                  <tr
+                    key={doc.id}
+                    className="border-b border-outline-variant/5 hover:bg-surface-container-low/30 transition-colors duration-150"
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-surface-container-high/60 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-lg text-primary-fixed-dim/80">
+                            description
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-on-surface">{doc.name}</p>
+                          <p className="text-[11px] text-on-surface-variant/40">
+                            {doc.size} &middot; {doc.date}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high/50 border border-outline-variant/10 text-xs font-semibold text-on-surface-variant/80 font-label">
+                        {doc.from}
+                        <span className="material-symbols-outlined text-sm text-primary-fixed-dim/60">
+                          arrow_forward
+                        </span>
+                        {doc.to}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold font-label ${statusColor(doc.status)}`}
+                        title={doc.error || undefined}
+                      >
+                        {doc.status === 'Translating' && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-secondary-fixed-dim animate-pulse" />
+                        )}
+                        {doc.status === 'Failed' && (
+                          <span className="material-symbols-outlined text-sm">error</span>
+                        )}
+                        {doc.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-1">
+                        {doc.status === 'Ready' && (
+                          <button
+                            onClick={() => handleDownload(doc)}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-container-highest/40 transition-colors duration-150 cursor-pointer"
+                            title="Download translated file"
+                          >
+                            <span className="material-symbols-outlined text-lg text-on-surface-variant/50 hover:text-primary-fixed-dim">
+                              download
+                            </span>
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDelete(doc.id)}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-error/10 transition-colors duration-150 cursor-pointer"
+                          title="Delete"
+                        >
+                          <span className="material-symbols-outlined text-lg text-on-surface-variant/50 hover:text-error">
+                            delete
+                          </span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </footer>
+        )}
       </div>
     </div>
   )
