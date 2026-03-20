@@ -166,6 +166,21 @@ function extractJSON(text: string): string {
   return text.trim()
 }
 
+export async function testConnection(): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await callAI(
+      [{ role: 'user', content: 'hi' }],
+      loadSettings().selectedModel,
+      loadSettings().providerType,
+      undefined,
+      1,
+    )
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Connection failed' }
+  }
+}
+
 export async function translate(req: TranslationRequest): Promise<string> {
   const systemMsg = `You are a master translator fluent in ${req.sourceLang} and ${req.targetLang}. Follow these three principles:
 
