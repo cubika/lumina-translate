@@ -15,6 +15,7 @@ Verify with `npx tsc --noEmit`. No test suite.
 
 - Never commit directly to `master` — always use feature branches
 - Branch naming: `feature/<desc>`, `fix/<desc>`
+- When work is ready, present options to the user: merge to master, create PR, or keep iterating
 
 ## Testing
 
