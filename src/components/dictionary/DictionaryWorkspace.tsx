@@ -252,6 +252,7 @@ export default function DictionaryWorkspace() {
                   <button
                     onClick={() => {
                       if ('speechSynthesis' in window) {
+                        speechSynthesis.cancel()
                         const utterance = new SpeechSynthesisUtterance(result.word)
                         speechSynthesis.speak(utterance)
                       }

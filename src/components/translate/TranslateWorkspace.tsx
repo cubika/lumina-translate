@@ -139,7 +139,8 @@ export default function TranslateWorkspace() {
             <div className="flex items-center gap-1">
               <button
                 onClick={() => {
-                  if (translatedText) {
+                  if (translatedText && 'speechSynthesis' in window) {
+                    speechSynthesis.cancel()
                     const utterance = new SpeechSynthesisUtterance(translatedText)
                     speechSynthesis.speak(utterance)
                   }
