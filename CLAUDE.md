@@ -31,3 +31,10 @@ npm run package          # Windows NSIS installer → release/
 ```
 
 No test suite. Verify with `npm run build` (includes TypeScript type checking).
+
+## Git Workflow
+
+- **Never commit directly to `master`.** Always work on a feature branch.
+- Branch naming: `feature/<short-description>`, `fix/<short-description>`
+- Commit early and often on the feature branch.
+- When work is ready, present options to the user: merge to master, create PR, or keep iterating.
