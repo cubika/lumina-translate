@@ -38,6 +38,7 @@ export interface ProofreadRequest {
 export interface DictionaryRequest {
   word: string
   context?: string
+  nativeLang?: string
   model: string
   providerType: 'openai' | 'anthropic'
 }
@@ -77,19 +78,20 @@ async function callAI(
       anthropicKey: config.anthropicKey,
     })
     if (!resp.ok) throw new Error(resp.error)
-    return resp.result
+    return resp.result!
   }
 
-  // Browser fallback (dev mode only)
+  // Browser fallback — use Vite dev proxy to avoid CORS
+  const isDev = import.meta.env.DEV
   if (providerType === 'anthropic') {
     if (!config.anthropicKey) throw new Error('Anthropic API key not configured. Please set it in Settings.')
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const anthropicUrl = isDev ? '/proxy/anthropic/v1/messages' : 'https://api.anthropic.com/v1/messages'
+    const response = await fetch(anthropicUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': config.anthropicKey,
         'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
         model,
@@ -106,7 +108,10 @@ async function callAI(
     return data.content[0].text
   } else {
     if (!config.openaiKey) throw new Error('OpenAI API key not configured. Please set it in Settings.')
-    const response = await fetch(`${config.openaiBase}/chat/completions`, {
+    const openaiBase = isDev && config.openaiBase === 'https://api.openai.com/v1'
+      ? '/proxy/openai/v1'
+      : config.openaiBase
+    const response = await fetch(`${openaiBase}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -121,6 +126,11 @@ async function callAI(
     const data = await response.json()
     return data.choices[0].message.content
   }
+}
+
+function stripMarkdownFences(text: string): string {
+  const match = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/)
+  return match ? match[1].trim() : text.trim()
 }
 
 export async function translate(req: TranslationRequest): Promise<string> {
@@ -150,7 +160,7 @@ Return ONLY valid JSON, no markdown fences.`
 
   const result = await callAI(messages, req.model, req.providerType, systemMsg)
   try {
-    return JSON.parse(result)
+    return JSON.parse(stripMarkdownFences(result))
   } catch {
     return { corrected: result, issues: [] }
   }
@@ -167,15 +177,18 @@ export async function lookupWord(req: DictionaryRequest): Promise<{
   examples: string[]
 }> {
   const contextPart = req.context ? ` in the context: "${req.context}"` : ''
-  const systemMsg = `You are a linguistic expert. Analyze the word "${req.word}"${contextPart}. Return a JSON object with:
-- "word": the word
+  const langNote = req.nativeLang && req.nativeLang !== 'English'
+    ? ` Write the "definition", "etymology" and "examples" in ${req.nativeLang} so a ${req.nativeLang} speaker can understand. Keep "word", "phonetics", "wordClass", "synonyms" and "antonyms" in the original language of the word.`
+    : ''
+  const systemMsg = `You are a multilingual linguistic expert. Analyze the word/phrase "${req.word}"${contextPart}. The input may be in any language — detect it automatically. Return a JSON object with:
+- "word": the word/phrase as given
 - "phonetics": IPA pronunciation
 - "wordClass": part of speech (Noun, Verb, Adjective, etc.)
 - "definition": clear definition
 - "etymology": brief etymology
-- "synonyms": array of 5-7 synonyms
-- "antonyms": array of 2-4 antonyms
-- "examples": array of 2 example sentences using the word
+- "synonyms": array of 5-7 synonyms in the same language as the word
+- "antonyms": array of 2-4 antonyms in the same language as the word
+- "examples": array of 2 example sentences using the word${langNote}
 Return ONLY valid JSON, no markdown fences.`
 
   const messages = [
@@ -185,7 +198,7 @@ Return ONLY valid JSON, no markdown fences.`
 
   const result = await callAI(messages, req.model, req.providerType, systemMsg)
   try {
-    return JSON.parse(result)
+    return JSON.parse(stripMarkdownFences(result))
   } catch {
     return {
       word: req.word,

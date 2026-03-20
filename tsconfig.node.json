@@ -4,8 +4,9 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
-    "noEmit": true,
     "composite": true,
+    "emitDeclarationOnly": true,
+    "declaration": true,
     "skipLibCheck": true
   },
   "include": ["vite.config.ts", "electron"]

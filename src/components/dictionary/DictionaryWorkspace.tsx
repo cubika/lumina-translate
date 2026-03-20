@@ -24,6 +24,14 @@ export default function DictionaryWorkspace() {
   const [recentWords, setRecentWords] = useState<string[]>([])
 
   const tokenize = useCallback((text: string): string[] => {
+    const cjkRange = /[\u4e00-\u9fff\u3400-\u4dbf\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]/
+    if (cjkRange.test(text)) {
+      const cleaned = text.replace(/[.,;:!?，。；：！？、\s]/g, '')
+      // Short CJK input (<=4 chars) is likely a single word/phrase
+      if (cleaned.length <= 4) return [cleaned]
+      // Longer input: split into individual characters for token selection
+      return Array.from(cleaned).filter(Boolean)
+    }
     return text
       .replace(/[^\w\s'-]/g, '')
       .split(/\s+/)
@@ -40,6 +48,7 @@ export default function DictionaryWorkspace() {
         const data = await lookupWord({
           word,
           context,
+          nativeLang: settings.targetLang,
           model: settings.selectedModel,
           providerType: settings.providerType,
         })
@@ -253,7 +262,6 @@ export default function DictionaryWorkspace() {
                       onClick={() => {
                         if ('speechSynthesis' in window) {
                           const utterance = new SpeechSynthesisUtterance(result.word)
-                          utterance.lang = 'en-US'
                           speechSynthesis.speak(utterance)
                         }
                       }}
@@ -386,76 +394,6 @@ export default function DictionaryWorkspace() {
               </div>
             </div>
 
-            {/* Frequency Index Card */}
-            <div className="liquid-glass rounded-[2rem] ghost-border p-6 flex flex-col gap-4">
-              <h3 className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/50 font-label font-semibold flex items-center gap-2">
-                <span className="material-symbols-outlined text-base text-primary-fixed-dim/60">
-                  bar_chart
-                </span>
-                Frequency Index
-              </h3>
-              <div className="flex items-end gap-3 h-28">
-                {['Academic', 'Casual', 'Formal', 'Literary', 'Technical'].map(
-                  (label, i) => {
-                    const heights = [72, 45, 88, 35, 60]
-                    const h = heights[i]
-                    return (
-                      <div key={label} className="flex-1 flex flex-col items-center gap-2">
-                        <div className="w-full flex justify-center">
-                          <div
-                            className="w-full max-w-[2.5rem] rounded-xl transition-all duration-500"
-                            style={{
-                              height: `${h}%`,
-                              background:
-                                i % 2 === 0
-                                  ? 'linear-gradient(to top, rgba(174,198,255,0.15), rgba(174,198,255,0.4))'
-                                  : 'linear-gradient(to top, rgba(0,218,243,0.1), rgba(0,218,243,0.3))',
-                            }}
-                          />
-                        </div>
-                        <span className="text-[9px] text-on-surface-variant/40 font-label text-center">
-                          {label}
-                        </span>
-                      </div>
-                    )
-                  },
-                )}
-              </div>
-            </div>
-
-            {/* Semantic Drift Card */}
-            <div className="liquid-glass rounded-[2rem] ghost-border p-6 flex flex-col gap-4">
-              <h3 className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/50 font-label font-semibold flex items-center gap-2">
-                <span className="material-symbols-outlined text-base text-secondary-fixed-dim/60">
-                  timeline
-                </span>
-                Semantic Drift
-              </h3>
-              <div className="flex items-center gap-4">
-                <div className="flex flex-col items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-primary-fixed-dim/60" />
-                  <span className="text-[9px] text-on-surface-variant/40 font-label">
-                    Origin
-                  </span>
-                </div>
-                <div className="flex-1 h-[2px] bg-gradient-to-r from-primary-fixed-dim/40 via-on-surface-variant/10 to-secondary-fixed-dim/40 rounded-full relative">
-                  <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-2 h-2 rounded-full bg-primary-fixed-dim/40" />
-                  <div className="absolute top-1/2 left-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-on-surface-variant/20" />
-                  <div className="absolute top-1/2 left-3/4 -translate-y-1/2 w-2 h-2 rounded-full bg-secondary-fixed-dim/40" />
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-secondary-fixed-dim/60" />
-                  <span className="text-[9px] text-on-surface-variant/40 font-label">
-                    Modern
-                  </span>
-                </div>
-              </div>
-              <p className="text-on-surface-variant/50 text-xs font-body leading-relaxed">
-                {result.etymology
-                  ? `Tracing from its etymological roots, "${result.word}" has evolved in meaning across centuries of usage.`
-                  : 'Semantic drift data is based on historical corpus analysis.'}
-              </p>
-            </div>
           </div>
         </div>
       )}

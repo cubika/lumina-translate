@@ -60,17 +60,6 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
           <span className="font-medium text-sm tracking-wide">Settings</span>
         </button>
 
-        <div className="bg-surface-container-high/50 rounded-2xl p-4 mt-4 border border-outline-variant/10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-fixed-dim to-on-primary-container flex items-center justify-center text-xs font-bold text-white shadow-lg">
-              U
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-bold text-on-surface">User</span>
-              <span className="text-[10px] text-on-surface-variant">lumina-translate</span>
-            </div>
-          </div>
-        </div>
       </div>
     </aside>
   )

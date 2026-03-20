@@ -1,5 +1,7 @@
 /// <reference types="vite/client" />
 
+export {}
+
 interface ElectronAPI {
   aiCall: (req: {
     provider: 'openai' | 'anthropic'

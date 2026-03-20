@@ -30,9 +30,6 @@ export default function TopBar({ workspace }: TopBarProps) {
               type="text"
             />
           </div>
-          <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-highest/50 transition-all duration-300 active:scale-95">
-            <span className="material-symbols-outlined text-primary-fixed-dim">account_circle</span>
-          </button>
         </div>
       </div>
       <div className="bg-gradient-to-b from-outline-variant/15 to-transparent h-[1px] w-full" />
