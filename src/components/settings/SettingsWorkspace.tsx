@@ -64,7 +64,7 @@ export default function SettingsWorkspace() {
 
   const [showOpenaiKey, setShowOpenaiKey] = useState(false)
   const [showAnthropicKey, setShowAnthropicKey] = useState(false)
-  const [saveMessage, setSaveMessage] = useState('')
+  const [showSaveToast, setShowSaveToast] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState<'untested' | 'testing' | 'ok' | 'failed'>('untested')
   const [connectionError, setConnectionError] = useState('')
 
@@ -82,8 +82,8 @@ export default function SettingsWorkspace() {
       anthropicApiKey,
       targetLang,
     })
-    setSaveMessage(t('settings.saved'))
-    setTimeout(() => setSaveMessage(''), 3000)
+    setShowSaveToast(true)
+    setTimeout(() => setShowSaveToast(false), 3000)
 
     const hasKey =
       (providerType === 'openai' && openaiApiKey.length > 0) ||
@@ -114,10 +114,10 @@ export default function SettingsWorkspace() {
   return (
     <div className="h-full overflow-y-auto px-8 py-8">
       {/* Save feedback toast */}
-      {saveMessage && (
+      {showSaveToast && (
         <div className="fixed top-14 right-8 z-50 bg-green-500/15 border border-green-500/30 text-green-400 px-5 py-3 rounded-xl text-sm font-label font-semibold flex items-center gap-2 shadow-lg animate-[fadeIn_0.2s_ease-out]">
           <span className="material-symbols-outlined text-lg">check_circle</span>
-          {saveMessage}
+          {t('settings.saved')}
         </div>
       )}
 
