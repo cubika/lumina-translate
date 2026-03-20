@@ -41,10 +41,11 @@
     },
     "files": [
       "dist/**/*",
-      "dist-electron/**/*"
+      "dist-electron/**/*",
+      "public/icon.ico"
     ],
     "asar": true,
-    "compression": "maximum",
+    "compression": "normal",
     "win": {
       "target": [
         {
