@@ -92,7 +92,7 @@ async function callAI(
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': config.anthropicKey,
-        'anthropic-version': '2023-06-01',
+        'anthropic-version': '2025-09-25',
       },
       body: JSON.stringify({
         model,
@@ -157,9 +157,9 @@ export async function translate(req: TranslationRequest): Promise<string> {
     { role: 'user', content: req.text },
   ]
 
-  // Scale max_tokens for longer texts (translation output ≈ input length)
-  const estimatedTokens = Math.ceil(req.text.length / 3)
-  const maxTokens = Math.max(4096, Math.min(estimatedTokens * 2, 16384))
+  // Scale max_tokens: ~1 token per 3 chars, translation can expand 2x, min 4096
+  const estimatedTokens = Math.ceil(req.text.length / 3) * 2
+  const maxTokens = Math.max(4096, estimatedTokens)
 
   return callAI(messages, req.model, req.providerType, systemMsg, maxTokens)
 }
@@ -178,7 +178,9 @@ Return ONLY valid JSON, no markdown fences.`
     { role: 'user', content: req.text },
   ]
 
-  const result = await callAI(messages, req.model, req.providerType, systemMsg)
+  // Proofread returns corrected text + issues JSON, can be large
+  const estimatedTokens = Math.max(4096, Math.ceil(req.text.length / 3) * 3)
+  const result = await callAI(messages, req.model, req.providerType, systemMsg, estimatedTokens)
   try {
     return JSON.parse(extractJSON(result))
   } catch {
