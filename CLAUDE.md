@@ -6,20 +6,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Lumina Translate — an AI-powered desktop translation app with a "Liquid Glass" aesthetic. Electron + React + TypeScript + Vite + Tailwind.
 
-## Design Reference
+## Architecture
 
-All designs live in `design/`. Each workspace folder contains `screen.png` (mockup) and `code.html` (Tailwind reference). The design system spec is in `design/liquid_lumina/DESIGN.md`.
+| Workspace | Component | Description |
+|-----------|-----------|-------------|
+| Translate | `src/components/translate/TranslateWorkspace.tsx` | Text translation between 24 languages |
+| Proofread | `src/components/proofread/ProofreadWorkspace.tsx` | Grammar/spelling/style analysis with issue cards |
+| Dictionary | `src/components/dictionary/DictionaryWorkspace.tsx` | Multilingual word lookup with etymology, synonyms |
+| Documents | `src/components/documents/DocumentsWorkspace.tsx` | File upload and translation (.txt, .md, .csv, .json, .srt) |
+| Settings | `src/components/settings/SettingsWorkspace.tsx` | Model selection, API key configuration |
 
-**When implementing or modifying a workspace, always read the corresponding `screen.png` and `code.html` first.**
-
-| Workspace | Design folder |
-|-----------|--------------|
-| Translate (home) | `lumina_home_workspace/` |
-| Proofread | `lumina_enhanced_proofread_wide_layout/` |
-| Dictionary | `lumina_dictionary_workspace/` |
-| Documents hub | `lumina_documents_workspace/` |
-| Document translation | `lumina_document_translation_workspace/` |
-| Settings | `lumina_settings_workspace/` |
+Key files:
+- `src/services/ai.ts` — AI API calls (OpenAI-compatible + Anthropic), prompt templates
+- `src/services/settings.ts` — Settings persistence (localStorage)
+- `src/App.tsx` — Workspace routing (CSS display:none to preserve state)
+- `electron/main.ts` — Electron main process with IPC for CORS-free API calls
+- `vite.config.ts` — Dev proxy for Anthropic, OpenAI, and custom endpoints (Azure)
 
 ## Build
 
@@ -30,7 +32,7 @@ npm run build:vite       # Vite build only (skip packaging)
 npm run package          # Windows NSIS installer → release/
 ```
 
-No test suite. Verify with `npm run build` (includes TypeScript type checking).
+No test suite. Verify with `npx tsc --noEmit` (type checking) or `npm run build` (full build).
 
 ## Git Workflow
 
@@ -38,3 +40,10 @@ No test suite. Verify with `npm run build` (includes TypeScript type checking).
 - Branch naming: `feature/<short-description>`, `fix/<short-description>`
 - Commit early and often on the feature branch.
 - When work is ready, present options to the user: merge to master, create PR, or keep iterating.
+
+## Testing
+
+- Use Playwright MCP for E2E testing — interact with the running dev server
+- Set up API key in Playwright's localStorage before testing (separate session from user's browser)
+- Azure Model Router (`model-router`) works for testing; Anthropic Sonnet/Opus may be blocked by API key tier
+- Run tests sequentially — parallel Playwright agents conflict on the same browser
