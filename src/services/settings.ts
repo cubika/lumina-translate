@@ -13,7 +13,7 @@ export interface AppSettings {
 const STORAGE_KEY = 'lumina-settings'
 
 export const defaultSettings: AppSettings = {
-  selectedModel: 'gpt-4o',
+  selectedModel: 'gpt-4.1',
   providerType: 'openai',
   openaiApiKey: '',
   openaiBaseUrl: 'https://api.openai.com/v1',

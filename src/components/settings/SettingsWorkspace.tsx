@@ -3,22 +3,36 @@ import { useSettings } from '../../hooks/useSettings'
 import { AI_PROVIDERS } from '../../services/ai'
 import { defaultSettings } from '../../services/settings'
 
-const MODEL_META: Record<string, { description: string; tags: string[] }> = {
-  'gpt-4-turbo': {
-    description: 'High precision for creative and technical documentation',
-    tags: ['Fastest', 'Multilingual'],
+const MODEL_META: Record<string, { description: string; tags: string[]; icon: string }> = {
+  'gpt-4.1': {
+    description: 'Most capable OpenAI model with best-in-class coding and instruction following',
+    tags: ['Most Capable', 'Multilingual'],
+    icon: 'bolt',
   },
-  'gpt-4o': {
-    description: 'Latest multimodal model with enhanced reasoning',
-    tags: ['Latest', 'Versatile'],
+  'gpt-4.1-mini': {
+    description: 'Balanced speed and intelligence for everyday translation tasks',
+    tags: ['Balanced', 'Fast'],
+    icon: 'speed',
   },
-  'claude-sonnet-4-20250514': {
-    description: 'Exceptional nuance in dialect and cultural context',
-    tags: ['Nuanced', 'Precise'],
+  'gpt-4.1-nano': {
+    description: 'Ultra-fast and cost-efficient for simple translations',
+    tags: ['Fastest', 'Lightweight'],
+    icon: 'flash_on',
+  },
+  'claude-opus-4-6': {
+    description: 'Most powerful Claude model with exceptional reasoning and nuance',
+    tags: ['Most Powerful', 'Nuanced'],
+    icon: 'neurology',
+  },
+  'claude-sonnet-4-6': {
+    description: 'Best balance of intelligence and speed for professional use',
+    tags: ['Balanced', 'Precise'],
+    icon: 'psychology',
   },
   'claude-haiku-4-5-20251001': {
-    description: 'Fast and efficient for quick translations',
+    description: 'Fast and efficient for quick translations at lower cost',
     tags: ['Fast', 'Efficient'],
+    icon: 'flash_on',
   },
 }
 
@@ -199,69 +213,78 @@ export default function SettingsWorkspace() {
             </div>
 
             <div className="space-y-5">
-              {/* OpenAI API Key */}
-              <div>
-                <label className="block text-xs font-label font-semibold text-on-surface-variant mb-2 tracking-wide">
-                  OpenAI API Key
-                </label>
-                <div className="relative">
-                  <input
-                    type={showOpenaiKey ? 'text' : 'password'}
-                    value={openaiApiKey}
-                    onChange={(e) => setOpenaiApiKey(e.target.value)}
-                    placeholder="sk-..."
-                    className="w-full bg-surface-container rounded-xl border border-outline-variant/15 px-4 py-3 pr-12 text-sm text-on-surface placeholder:text-on-surface-variant/30 outline-none focus:border-primary-fixed-dim/50 transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowOpenaiKey(!showOpenaiKey)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-on-surface-variant transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-lg">
-                      {showOpenaiKey ? 'visibility_off' : 'visibility'}
-                    </span>
-                  </button>
-                </div>
-              </div>
+              {providerType === 'openai' ? (
+                <>
+                  {/* OpenAI API Key */}
+                  <div>
+                    <label className="block text-xs font-label font-semibold text-on-surface-variant mb-2 tracking-wide">
+                      OpenAI API Key
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showOpenaiKey ? 'text' : 'password'}
+                        value={openaiApiKey}
+                        onChange={(e) => setOpenaiApiKey(e.target.value)}
+                        placeholder="sk-..."
+                        className="w-full bg-surface-container rounded-xl border border-outline-variant/15 px-4 py-3 pr-12 text-sm text-on-surface placeholder:text-on-surface-variant/30 outline-none focus:border-primary-fixed-dim/50 transition-colors"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowOpenaiKey(!showOpenaiKey)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-on-surface-variant transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-lg">
+                          {showOpenaiKey ? 'visibility_off' : 'visibility'}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
 
-              {/* OpenAI Base URL */}
-              <div>
-                <label className="block text-xs font-label font-semibold text-on-surface-variant mb-2 tracking-wide">
-                  OpenAI Base URL
-                </label>
-                <input
-                  type="text"
-                  value={openaiBaseUrl}
-                  onChange={(e) => setOpenaiBaseUrl(e.target.value)}
-                  placeholder="https://api.openai.com/v1"
-                  className="w-full bg-surface-container rounded-xl border border-outline-variant/15 px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/30 outline-none focus:border-primary-fixed-dim/50 transition-colors"
-                />
-              </div>
-
-              {/* Anthropic API Key */}
-              <div>
-                <label className="block text-xs font-label font-semibold text-on-surface-variant mb-2 tracking-wide">
-                  Anthropic API Key
-                </label>
-                <div className="relative">
-                  <input
-                    type={showAnthropicKey ? 'text' : 'password'}
-                    value={anthropicApiKey}
-                    onChange={(e) => setAnthropicApiKey(e.target.value)}
-                    placeholder="sk-ant-..."
-                    className="w-full bg-surface-container rounded-xl border border-outline-variant/15 px-4 py-3 pr-12 text-sm text-on-surface placeholder:text-on-surface-variant/30 outline-none focus:border-primary-fixed-dim/50 transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowAnthropicKey(!showAnthropicKey)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-on-surface-variant transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-lg">
-                      {showAnthropicKey ? 'visibility_off' : 'visibility'}
-                    </span>
-                  </button>
-                </div>
-              </div>
+                  {/* OpenAI Base URL */}
+                  <div>
+                    <label className="block text-xs font-label font-semibold text-on-surface-variant mb-2 tracking-wide">
+                      Base URL
+                      <span className="text-on-surface-variant/30 ml-2 font-normal">
+                        (change for compatible APIs like Azure, Ollama, etc.)
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      value={openaiBaseUrl}
+                      onChange={(e) => setOpenaiBaseUrl(e.target.value)}
+                      placeholder="https://api.openai.com/v1"
+                      className="w-full bg-surface-container rounded-xl border border-outline-variant/15 px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/30 outline-none focus:border-primary-fixed-dim/50 transition-colors"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Anthropic API Key */}
+                  <div>
+                    <label className="block text-xs font-label font-semibold text-on-surface-variant mb-2 tracking-wide">
+                      Anthropic API Key
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showAnthropicKey ? 'text' : 'password'}
+                        value={anthropicApiKey}
+                        onChange={(e) => setAnthropicApiKey(e.target.value)}
+                        placeholder="sk-ant-..."
+                        className="w-full bg-surface-container rounded-xl border border-outline-variant/15 px-4 py-3 pr-12 text-sm text-on-surface placeholder:text-on-surface-variant/30 outline-none focus:border-primary-fixed-dim/50 transition-colors"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAnthropicKey(!showAnthropicKey)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-on-surface-variant transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-lg">
+                          {showAnthropicKey ? 'visibility_off' : 'visibility'}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
