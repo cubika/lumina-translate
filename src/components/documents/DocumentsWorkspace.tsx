@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { translate, downloadTextFile } from '../../services/ai'
 import { loadSettings, LANGUAGES } from '../../services/settings'
 
@@ -34,6 +34,16 @@ export default function DocumentsWorkspace() {
   const [sourceLang, setSourceLang] = useState(() => loadSettings().sourceLang)
   const [targetLang, setTargetLang] = useState(() => loadSettings().targetLang)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const sync = () => {
+      const s = loadSettings()
+      setSourceLang(s.sourceLang)
+      setTargetLang(s.targetLang)
+    }
+    window.addEventListener('settings-changed', sync)
+    return () => window.removeEventListener('settings-changed', sync)
+  }, [])
 
   const processFile = useCallback(
     async (file: File) => {

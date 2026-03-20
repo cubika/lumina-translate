@@ -1,7 +1,6 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { translate } from '../../services/ai'
-import { loadSettings } from '../../services/settings'
-import { LANGUAGES } from '../../services/settings'
+import { loadSettings, LANGUAGES, langToBcp47 } from '../../services/settings'
 
 export default function TranslateWorkspace() {
   const [sourceText, setSourceText] = useState('')
@@ -10,6 +9,16 @@ export default function TranslateWorkspace() {
   const [targetLang, setTargetLang] = useState(() => loadSettings().targetLang)
   const [isTranslating, setIsTranslating] = useState(false)
   const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    const sync = () => {
+      const s = loadSettings()
+      setSourceLang(s.sourceLang)
+      setTargetLang(s.targetLang)
+    }
+    window.addEventListener('settings-changed', sync)
+    return () => window.removeEventListener('settings-changed', sync)
+  }, [])
 
   const handleSourceChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setSourceText(e.target.value)
@@ -142,6 +151,7 @@ export default function TranslateWorkspace() {
                   if (translatedText && 'speechSynthesis' in window) {
                     speechSynthesis.cancel()
                     const utterance = new SpeechSynthesisUtterance(translatedText)
+                    utterance.lang = langToBcp47(targetLang)
                     speechSynthesis.speak(utterance)
                   }
                 }}

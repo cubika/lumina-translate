@@ -34,6 +34,7 @@ export function loadSettings(): AppSettings {
 
 export function saveSettings(settings: AppSettings): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+  window.dispatchEvent(new Event('settings-changed'))
 }
 
 export const LANGUAGES = [
@@ -42,3 +43,17 @@ export const LANGUAGES = [
   'Turkish', 'Vietnamese', 'Thai', 'Indonesian', 'Hindi', 'Polish',
   'Swedish', 'Czech', 'Romanian', 'Hungarian', 'Ukrainian', 'Greek',
 ]
+
+/** Map display language names to BCP-47 tags for speech synthesis */
+const LANG_TO_BCP47: Record<string, string> = {
+  English: 'en', Chinese: 'zh-CN', Spanish: 'es', French: 'fr',
+  German: 'de', Japanese: 'ja', Korean: 'ko', Portuguese: 'pt',
+  Russian: 'ru', Arabic: 'ar', Italian: 'it', Dutch: 'nl',
+  Turkish: 'tr', Vietnamese: 'vi', Thai: 'th', Indonesian: 'id',
+  Hindi: 'hi', Polish: 'pl', Swedish: 'sv', Czech: 'cs',
+  Romanian: 'ro', Hungarian: 'hu', Ukrainian: 'uk', Greek: 'el',
+}
+
+export function langToBcp47(lang: string): string {
+  return LANG_TO_BCP47[lang] ?? 'en'
+}

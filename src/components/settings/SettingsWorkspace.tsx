@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useSettings } from '../../hooks/useSettings'
-import { AI_PROVIDERS } from '../../services/ai'
-import { defaultSettings } from '../../services/settings'
+import { AI_PROVIDERS, testConnection } from '../../services/ai'
+import { defaultSettings, LANGUAGES } from '../../services/settings'
 
 const openaiModels = AI_PROVIDERS.filter((p) => p.type === 'openai')
 const anthropicModels = AI_PROVIDERS.filter((p) => p.type === 'anthropic')
@@ -46,13 +46,6 @@ function ModelRow({
         {name}
       </span>
 
-      {/* "Latest" badge for the first model in each group */}
-      {((type === 'openai' && id === openaiModels[0].id) ||
-        (type === 'anthropic' && id === anthropicModels[0].id)) && (
-        <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-secondary-fixed-dim/15 text-secondary-fixed-dim">
-          Latest
-        </span>
-      )}
     </button>
   )
 }
@@ -65,26 +58,43 @@ export default function SettingsWorkspace() {
   const [openaiApiKey, setOpenaiApiKey] = useState(settings.openaiApiKey)
   const [openaiBaseUrl, setOpenaiBaseUrl] = useState(settings.openaiBaseUrl)
   const [anthropicApiKey, setAnthropicApiKey] = useState(settings.anthropicApiKey)
+  const [targetLang, setTargetLang] = useState(settings.targetLang)
 
   const [showOpenaiKey, setShowOpenaiKey] = useState(false)
   const [showAnthropicKey, setShowAnthropicKey] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
+  const [connectionStatus, setConnectionStatus] = useState<'untested' | 'testing' | 'ok' | 'failed'>('untested')
+  const [connectionError, setConnectionError] = useState('')
 
   function handleSelectModel(id: string, type: 'openai' | 'anthropic') {
     setSelectedModel(id)
     setProviderType(type)
   }
 
-  function handleSave() {
+  async function handleSave() {
     updateSettings({
       selectedModel,
       providerType,
       openaiApiKey,
       openaiBaseUrl,
       anthropicApiKey,
+      targetLang,
     })
     setSaveMessage('Settings saved successfully!')
     setTimeout(() => setSaveMessage(''), 3000)
+
+    const hasKey =
+      (providerType === 'openai' && openaiApiKey.length > 0) ||
+      (providerType === 'anthropic' && anthropicApiKey.length > 0)
+    if (!hasKey) {
+      setConnectionStatus('untested')
+      return
+    }
+    setConnectionStatus('testing')
+    setConnectionError('')
+    const result = await testConnection()
+    setConnectionStatus(result.ok ? 'ok' : 'failed')
+    if (!result.ok) setConnectionError(result.error ?? 'Connection failed')
   }
 
   function handleReset() {
@@ -93,14 +103,11 @@ export default function SettingsWorkspace() {
     setOpenaiApiKey(defaultSettings.openaiApiKey)
     setOpenaiBaseUrl(defaultSettings.openaiBaseUrl)
     setAnthropicApiKey(defaultSettings.anthropicApiKey)
+    setTargetLang(defaultSettings.targetLang)
+    setConnectionStatus('untested')
     updateSettings(defaultSettings)
   }
 
-  const hasOpenaiKey = openaiApiKey.length > 0
-  const hasAnthropicKey = anthropicApiKey.length > 0
-  const connectionOk =
-    (providerType === 'openai' && hasOpenaiKey) ||
-    (providerType === 'anthropic' && hasAnthropicKey)
 
   return (
     <div className="h-full overflow-y-auto px-8 py-8">
@@ -115,6 +122,79 @@ export default function SettingsWorkspace() {
       {/* Bento Grid */}
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-6">
+          {/* Native Language */}
+          <div className="bg-surface-container-low rounded-[24px] border border-outline-variant/15 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="material-symbols-outlined text-primary-fixed-dim text-2xl">
+                language
+              </span>
+              <div>
+                <h2 className="text-lg font-headline font-bold text-on-surface">Native Language</h2>
+                <p className="text-xs text-on-surface-variant/50">
+                  Default target language for all translations
+                </p>
+              </div>
+            </div>
+            <select
+              value={targetLang}
+              onChange={(e) => setTargetLang(e.target.value)}
+              className="w-full bg-surface-container rounded-xl border border-outline-variant/15 px-4 py-3 text-sm text-on-surface outline-none focus:border-primary-fixed-dim/50 transition-colors cursor-pointer"
+            >
+              {LANGUAGES.map((lang) => (
+                <option key={lang} value={lang}>
+                  {lang}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* AI Engine Panel — stacked sections with flex-wrap grids */}
+          <div className="bg-surface-container-low rounded-[24px] border border-outline-variant/15 p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <span className="material-symbols-outlined text-primary-fixed-dim text-2xl">
+                psychology
+              </span>
+              <div>
+                <h2 className="text-lg font-headline font-bold text-on-surface">AI Engine</h2>
+                <p className="text-xs text-on-surface-variant/50">
+                  Select the model that powers your translations
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-6">
+              {/* OpenAI group */}
+              <div>
+                <div className="flex items-center gap-2 mb-3 px-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-secondary-fixed-dim">
+                    OpenAI
+                  </span>
+                  <div className="flex-1 h-px bg-outline-variant/15" />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {openaiModels.map((m) => (
+                    <ModelRow key={m.id} {...m} selectedModel={selectedModel} onSelect={handleSelectModel} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Anthropic group */}
+              <div>
+                <div className="flex items-center gap-2 mb-3 px-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-tertiary-fixed-dim">
+                    Anthropic
+                  </span>
+                  <div className="flex-1 h-px bg-outline-variant/15" />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {anthropicModels.map((m) => (
+                    <ModelRow key={m.id} {...m} selectedModel={selectedModel} onSelect={handleSelectModel} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* API Configuration Panel */}
           <div className="bg-surface-container-low rounded-[24px] border border-outline-variant/15 p-6">
             <div className="flex items-center justify-between mb-5">
@@ -133,20 +213,22 @@ export default function SettingsWorkspace() {
               </div>
 
               {/* Connection status */}
-              <div
-                className={`flex items-center gap-2 text-xs font-label font-semibold px-3 py-1.5 rounded-full ${
-                  connectionOk
-                    ? 'bg-[#00c853]/10 text-[#00c853]'
-                    : 'bg-error/10 text-error'
-                }`}
-              >
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    connectionOk ? 'bg-[#00c853]' : 'bg-error'
-                  }`}
-                />
-                {connectionOk ? 'Connected' : 'Not Connected'}
-              </div>
+              {connectionStatus === 'testing' ? (
+                <div className="flex items-center gap-2 text-xs font-label font-semibold px-3 py-1.5 rounded-full bg-secondary-fixed-dim/10 text-secondary-fixed-dim">
+                  <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                  Testing...
+                </div>
+              ) : connectionStatus === 'ok' ? (
+                <div className="flex items-center gap-2 text-xs font-label font-semibold px-3 py-1.5 rounded-full bg-[#00c853]/10 text-[#00c853]">
+                  <span className="w-2 h-2 rounded-full bg-[#00c853]" />
+                  Connected
+                </div>
+              ) : connectionStatus === 'failed' ? (
+                <div className="flex items-center gap-2 text-xs font-label font-semibold px-3 py-1.5 rounded-full bg-error/10 text-error" title={connectionError}>
+                  <span className="w-2 h-2 rounded-full bg-error" />
+                  Failed
+                </div>
+              ) : null}
             </div>
 
             <div className="space-y-5">
@@ -216,53 +298,6 @@ export default function SettingsWorkspace() {
                   </div>
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* AI Engine Panel — stacked sections with flex-wrap grids */}
-          <div className="bg-surface-container-low rounded-[24px] border border-outline-variant/15 p-6">
-            <div className="flex items-center gap-3 mb-5">
-              <span className="material-symbols-outlined text-primary-fixed-dim text-2xl">
-                psychology
-              </span>
-              <div>
-                <h2 className="text-lg font-headline font-bold text-on-surface">AI Engine</h2>
-                <p className="text-xs text-on-surface-variant/50">
-                  Select the model that powers your translations
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-6">
-              {/* OpenAI group */}
-              <div>
-                <div className="flex items-center gap-2 mb-3 px-1">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-secondary-fixed-dim">
-                    OpenAI
-                  </span>
-                  <div className="flex-1 h-px bg-outline-variant/15" />
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {openaiModels.map((m) => (
-                    <ModelRow key={m.id} {...m} selectedModel={selectedModel} onSelect={handleSelectModel} />
-                  ))}
-                </div>
-              </div>
-
-              {/* Anthropic group */}
-              <div>
-                <div className="flex items-center gap-2 mb-3 px-1">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-tertiary-fixed-dim">
-                    Anthropic
-                  </span>
-                  <div className="flex-1 h-px bg-outline-variant/15" />
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {anthropicModels.map((m) => (
-                    <ModelRow key={m.id} {...m} selectedModel={selectedModel} onSelect={handleSelectModel} />
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         </div>
