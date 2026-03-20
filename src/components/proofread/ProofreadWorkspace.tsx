@@ -232,8 +232,14 @@ export default function ProofreadWorkspace() {
   }, [correctedText])
 
   const handleApplyAll = useCallback(() => {
-    setIssueStatuses((prev) => prev.map(() => 'accepted'))
-  }, [])
+    // Replace input with corrected text and reset to input view
+    setInputText(correctedText)
+    setHasResult(false)
+    setOriginalText('')
+    setCorrectedText('')
+    setIssues([])
+    setIssueStatuses([])
+  }, [correctedText])
 
   const handleExport = useCallback(() => {
     downloadTextFile(correctedText, 'proofread-export.txt')
