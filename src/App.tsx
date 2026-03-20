@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Sidebar from './components/layout/Sidebar'
 import TopBar from './components/layout/TopBar'
 import TranslateWorkspace from './components/translate/TranslateWorkspace'
@@ -9,8 +9,17 @@ import SettingsWorkspace from './components/settings/SettingsWorkspace'
 
 export type WorkspaceId = 'translate' | 'proofread' | 'dictionary' | 'documents' | 'settings'
 
+const WORKSPACE_KEY = 'lumina-active-workspace'
+
 export default function App() {
-  const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceId>('translate')
+  const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceId>(() => {
+    const saved = localStorage.getItem(WORKSPACE_KEY)
+    return (saved as WorkspaceId) || 'translate'
+  })
+
+  useEffect(() => {
+    localStorage.setItem(WORKSPACE_KEY, activeWorkspace)
+  }, [activeWorkspace])
 
   return (
     <div className="flex h-screen bg-surface text-on-surface overflow-hidden">
@@ -22,11 +31,12 @@ export default function App() {
       <main className="flex-1 ml-64 flex flex-col h-screen pt-9">
         <TopBar workspace={activeWorkspace} />
         <div className="flex-1 overflow-hidden">
-          {activeWorkspace === 'translate' && <TranslateWorkspace />}
-          {activeWorkspace === 'proofread' && <ProofreadWorkspace />}
-          {activeWorkspace === 'dictionary' && <DictionaryWorkspace />}
-          {activeWorkspace === 'documents' && <DocumentsWorkspace />}
-          {activeWorkspace === 'settings' && <SettingsWorkspace />}
+          {/* Use display:none instead of unmount to preserve workspace state */}
+          <div className={`h-full ${activeWorkspace !== 'translate' ? 'hidden' : ''}`}><TranslateWorkspace /></div>
+          <div className={`h-full ${activeWorkspace !== 'proofread' ? 'hidden' : ''}`}><ProofreadWorkspace /></div>
+          <div className={`h-full ${activeWorkspace !== 'dictionary' ? 'hidden' : ''}`}><DictionaryWorkspace /></div>
+          <div className={`h-full ${activeWorkspace !== 'documents' ? 'hidden' : ''}`}><DocumentsWorkspace /></div>
+          <div className={`h-full ${activeWorkspace !== 'settings' ? 'hidden' : ''}`}><SettingsWorkspace /></div>
         </div>
       </main>
     </div>
