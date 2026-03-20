@@ -9,14 +9,15 @@ function customProxyPlugin(): Plugin {
   return {
     name: 'custom-openai-proxy',
     configureServer(server) {
-      server.middlewares.use('/proxy/custom', async (req, res) => {
+      server.middlewares.use(async (req, res, next) => {
+        if (!req.url?.startsWith('/proxy/custom')) return next()
         const targetBase = req.headers['x-proxy-target'] as string
         if (!targetBase) {
           res.writeHead(400, { 'Content-Type': 'application/json' })
           res.end(JSON.stringify({ error: 'Missing x-proxy-target header' }))
           return
         }
-        const subPath = req.url || ''
+        const subPath = req.url.replace('/proxy/custom', '') || ''
         const targetUrl = targetBase + subPath
 
         // Collect request body
