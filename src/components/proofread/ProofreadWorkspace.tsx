@@ -227,8 +227,11 @@ export default function ProofreadWorkspace() {
     })
   }, [])
 
+  const [copied, setCopied] = useState(false)
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(correctedText)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }, [correctedText])
 
   const handleApplyAll = useCallback(() => {
@@ -257,7 +260,7 @@ export default function ProofreadWorkspace() {
             Enter Text to Proofread
           </span>
           <span className="ml-auto text-[10px] text-on-surface-variant/60 font-label">
-            {wordCount(inputText)} Words
+            {wordCount(inputText)} {wordCount(inputText) === 1 ? 'Word' : 'Words'}
           </span>
         </div>
 
@@ -317,7 +320,7 @@ export default function ProofreadWorkspace() {
                 </span>
               </div>
               <span className="text-[10px] text-on-surface-variant/60 font-label">
-                {wordCount(originalText)} Words
+                {wordCount(originalText)} {wordCount(originalText) === 1 ? 'Word' : 'Words'}
               </span>
             </div>
             <div className="flex-1 glass-panel rounded-[2rem] p-10 overflow-y-auto border border-outline-variant/10 shadow-inner">
@@ -341,7 +344,7 @@ export default function ProofreadWorkspace() {
                   onClick={handleCopy}
                   className="text-xs bg-surface-container-high/80 px-4 py-1.5 rounded-lg hover:bg-surface-container-highest transition-colors font-label border border-outline-variant/10"
                 >
-                  Copy
+                  {copied ? 'Copied!' : 'Copy'}
                 </button>
                 <button
                   onClick={handleApplyAll}
