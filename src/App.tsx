@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Sidebar from './components/layout/Sidebar'
 import TopBar from './components/layout/TopBar'
+import ErrorBoundary from './components/ui/ErrorBoundary'
 import TranslateWorkspace from './components/translate/TranslateWorkspace'
 import ProofreadWorkspace from './components/proofread/ProofreadWorkspace'
 import DictionaryWorkspace from './components/dictionary/DictionaryWorkspace'
@@ -32,11 +33,11 @@ export default function App() {
         <TopBar workspace={activeWorkspace} />
         <div className="flex-1 overflow-hidden">
           {/* Use display:none instead of unmount to preserve workspace state */}
-          <div className={`h-full ${activeWorkspace !== 'translate' ? 'hidden' : ''}`}><TranslateWorkspace /></div>
-          <div className={`h-full ${activeWorkspace !== 'proofread' ? 'hidden' : ''}`}><ProofreadWorkspace /></div>
-          <div className={`h-full ${activeWorkspace !== 'dictionary' ? 'hidden' : ''}`}><DictionaryWorkspace /></div>
-          <div className={`h-full ${activeWorkspace !== 'documents' ? 'hidden' : ''}`}><DocumentsWorkspace /></div>
-          <div className={`h-full ${activeWorkspace !== 'settings' ? 'hidden' : ''}`}><SettingsWorkspace /></div>
+          <div className={`h-full ${activeWorkspace !== 'translate' ? 'hidden' : ''}`}><ErrorBoundary><TranslateWorkspace /></ErrorBoundary></div>
+          <div className={`h-full ${activeWorkspace !== 'proofread' ? 'hidden' : ''}`}><ErrorBoundary><ProofreadWorkspace /></ErrorBoundary></div>
+          <div className={`h-full ${activeWorkspace !== 'dictionary' ? 'hidden' : ''}`}><ErrorBoundary><DictionaryWorkspace /></ErrorBoundary></div>
+          <div className={`h-full ${activeWorkspace !== 'documents' ? 'hidden' : ''}`}><ErrorBoundary><DocumentsWorkspace /></ErrorBoundary></div>
+          <div className={`h-full ${activeWorkspace !== 'settings' ? 'hidden' : ''}`}><ErrorBoundary><SettingsWorkspace /></ErrorBoundary></div>
         </div>
       </main>
     </div>

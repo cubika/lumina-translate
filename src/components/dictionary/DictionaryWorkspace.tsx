@@ -15,10 +15,11 @@ interface DictionaryResult {
 }
 
 function highlightWordInText(text: string, word: string) {
-  const regex = new RegExp(`(${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(`(${escaped})`, 'gi')
   const parts = text.split(regex)
   return parts.map((part, i) =>
-    regex.test(part) ? (
+    part.toLowerCase() === word.toLowerCase() ? (
       <span key={i} className="text-secondary-fixed-dim font-semibold">
         {part}
       </span>

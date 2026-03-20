@@ -231,9 +231,10 @@ export default function ProofreadWorkspace() {
 
   const [copied, setCopied] = useState(false)
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(correctedText)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    navigator.clipboard.writeText(correctedText).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }).catch(() => { /* clipboard permission denied */ })
   }, [correctedText])
 
   const handleApplyAll = useCallback(() => {

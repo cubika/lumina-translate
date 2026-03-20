@@ -118,7 +118,9 @@ async function callAI(
       throw new Error(`Anthropic API error (${response.status}): ${detail}`)
     }
     const data = await response.json()
-    return data.content[0].text
+    const text = data?.content?.[0]?.text
+    if (!text) throw new Error('Unexpected Anthropic response format')
+    return text
   } else {
     if (!config.openaiKey) throw new Error('OpenAI API key not configured. Please set it in Settings.')
     // In dev mode, route through Vite proxy to avoid CORS
@@ -152,7 +154,9 @@ async function callAI(
       throw new Error(`OpenAI API error (${response.status}): ${detail}`)
     }
     const data = await response.json()
-    return data.choices[0].message.content
+    const text = data?.choices?.[0]?.message?.content
+    if (!text) throw new Error('Unexpected OpenAI response format')
+    return text
   }
 }
 

@@ -53,9 +53,10 @@ export default function TranslateWorkspace() {
 
   const handleCopy = useCallback(() => {
     if (!translatedText) return
-    navigator.clipboard.writeText(translatedText)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    navigator.clipboard.writeText(translatedText).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }).catch(() => { /* clipboard permission denied */ })
   }, [translatedText])
 
   const handleSwapLanguages = useCallback(() => {
