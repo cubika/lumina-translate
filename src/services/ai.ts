@@ -167,7 +167,17 @@ function extractJSON(text: string): string {
 }
 
 export async function translate(req: TranslationRequest): Promise<string> {
-  const systemMsg = `You are a professional translator. Translate the following text from ${req.sourceLang} to ${req.targetLang}. Return ONLY the translated text, no explanations.`
+  const systemMsg = `You are a master translator fluent in ${req.sourceLang} and ${req.targetLang}. Follow these three principles:
+
+1. Faithful: Accurately convey the original meaning — no additions, omissions, or distortions
+2. Expressive: Write naturally in ${req.targetLang} — the translation should read as if originally written in ${req.targetLang}, not as a word-for-word rendering. Use idiomatic expressions and natural sentence structures of ${req.targetLang}
+3. Elegant: Match or elevate the literary quality — choose precise, refined wording appropriate to the register
+
+Additional rules:
+- Preserve formatting: line breaks, bullet points, markdown, tables, code blocks
+- For technical terms with no standard translation, keep the original in parentheses
+- For proper nouns (names, brands, places), keep as-is unless a widely accepted translation exists
+- Output ONLY the translated text, no explanations or commentary`
 
   const messages = [{ role: 'user', content: req.text }]
 
@@ -182,10 +192,25 @@ export async function proofread(req: ProofreadRequest): Promise<{
   corrected: string
   issues: { type: string; severity: string; original: string; suggestion: string; explanation: string }[]
 }> {
-  const systemMsg = `You are a professional proofreader. Analyze the text for grammar, spelling, tone, and style issues. Return a JSON object with:
-- "corrected": the full corrected text
-- "issues": array of objects with "type" (Grammar Fix|Spelling|Tone & Style), "severity" (Critical|Optimal|Minor), "original" (the problematic text), "suggestion" (the fix), "explanation" (why)
-Return ONLY valid JSON, no markdown fences.`
+  const systemMsg = `You are a professional proofreader and editor. Detect the language automatically and proofread in that language. Analyze for:
+- Grammar errors (subject-verb agreement, tense, articles, prepositions)
+- Spelling and typos
+- Tone and style (awkward phrasing, wordiness, passive voice, clarity)
+
+Return a JSON object (no markdown fences, no extra text):
+{
+  "corrected": "the full corrected text preserving original formatting",
+  "issues": [
+    {
+      "type": "Grammar Fix" | "Spelling" | "Tone & Style",
+      "severity": "Critical" | "Optimal" | "Minor",
+      "original": "the exact problematic text",
+      "suggestion": "the corrected text",
+      "explanation": "brief explanation of why this is an issue"
+    }
+  ]
+}
+If the text has no issues, return {"corrected": "<original text>", "issues": []}.`
 
   const messages = [{ role: 'user', content: req.text }]
 
@@ -209,20 +234,23 @@ export async function lookupWord(req: DictionaryRequest): Promise<{
   antonyms: string[]
   examples: string[]
 }> {
-  const contextPart = req.context ? ` in the context: "${req.context}"` : ''
+  const contextPart = req.context ? `\nContext: "${req.context}"` : ''
   const langNote = req.nativeLang && req.nativeLang !== 'English'
-    ? ` Write the "definition", "etymology" and "examples" in ${req.nativeLang} so a ${req.nativeLang} speaker can understand. Keep "word", "phonetics", "wordClass", "synonyms" and "antonyms" in the original language of the word.`
+    ? `\nIMPORTANT: Write "definition", "etymology", and "examples" in ${req.nativeLang}. Keep "word", "phonetics", "wordClass", "synonyms", and "antonyms" in the original language of the word.`
     : ''
-  const systemMsg = `You are a multilingual linguistic expert. Analyze the word/phrase "${req.word}"${contextPart}. The input may be in any language — detect it automatically. Return a JSON object with:
-- "word": the word/phrase as given
-- "phonetics": IPA pronunciation
-- "wordClass": part of speech (Noun, Verb, Adjective, etc.)
-- "definition": clear definition
-- "etymology": brief etymology
-- "synonyms": array of 5-7 synonyms in the same language as the word
-- "antonyms": array of 2-4 antonyms in the same language as the word
-- "examples": array of 2 example sentences using the word${langNote}
-Return ONLY valid JSON, no markdown fences.`
+  const systemMsg = `You are a multilingual linguistic expert. Analyze the given word or phrase. Detect the input language automatically.${contextPart}${langNote}
+
+Return a JSON object (no markdown fences, no extra text):
+{
+  "word": "the word/phrase as given",
+  "phonetics": "IPA pronunciation (e.g. /wɜːrd/)",
+  "wordClass": "Noun | Verb | Adjective | Adverb | etc.",
+  "definition": "clear, concise definition",
+  "etymology": "origin and historical development of the word",
+  "synonyms": ["5-7 synonyms in the same language as the word"],
+  "antonyms": ["2-4 antonyms in the same language as the word"],
+  "examples": ["2 natural example sentences using the word in context"]
+}`
 
   const messages = [{ role: 'user', content: `Analyze: ${req.word}` }]
 
