@@ -3,27 +3,16 @@ import { translate } from '../../services/ai'
 import { loadSettings } from '../../services/settings'
 import { LANGUAGES } from '../../services/settings'
 
-interface BreakdownData {
-  phonetics: string
-  wordClass: string
-  definition: string
-  synonyms: string[]
-}
-
 export default function TranslateWorkspace() {
   const [sourceText, setSourceText] = useState('')
   const [translatedText, setTranslatedText] = useState('')
   const [sourceLang, setSourceLang] = useState(() => loadSettings().sourceLang)
   const [targetLang, setTargetLang] = useState(() => loadSettings().targetLang)
   const [isTranslating, setIsTranslating] = useState(false)
-  const [charCount, setCharCount] = useState(0)
   const [copied, setCopied] = useState(false)
-  const [breakdown, setBreakdown] = useState<BreakdownData | null>(null)
 
   const handleSourceChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const text = e.target.value
-    setSourceText(text)
-    setCharCount(text.length)
+    setSourceText(e.target.value)
   }, [])
 
   const handleTranslate = useCallback(async () => {
@@ -31,7 +20,6 @@ export default function TranslateWorkspace() {
 
     setIsTranslating(true)
     setTranslatedText('')
-    setBreakdown(null)
 
     try {
       const settings = loadSettings()
@@ -43,17 +31,6 @@ export default function TranslateWorkspace() {
         providerType: settings.providerType,
       })
       setTranslatedText(result)
-
-      // Generate a simple breakdown for single words or short phrases
-      const words = sourceText.trim().split(/\s+/)
-      if (words.length <= 3) {
-        setBreakdown({
-          phonetics: '',
-          wordClass: '',
-          definition: result,
-          synonyms: [],
-        })
-      }
     } catch (err) {
       setTranslatedText(
         err instanceof Error ? err.message : 'Translation failed. Please check your API settings.'
@@ -76,15 +53,12 @@ export default function TranslateWorkspace() {
     if (translatedText) {
       setSourceText(translatedText)
       setTranslatedText(sourceText)
-      setCharCount(translatedText.length)
     }
   }, [sourceLang, targetLang, sourceText, translatedText])
 
   const handleClearSource = useCallback(() => {
     setSourceText('')
-    setCharCount(0)
     setTranslatedText('')
-    setBreakdown(null)
   }, [])
 
   return (
@@ -118,7 +92,7 @@ export default function TranslateWorkspace() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-label text-on-surface-variant/60">
-                {charCount} chars
+                {sourceText.length} chars
               </span>
               {sourceText && (
                 <button
@@ -213,90 +187,9 @@ export default function TranslateWorkspace() {
         </div>
       </div>
 
-      {/* Detailed Breakdown card */}
-      {breakdown && translatedText && (
-        <div className="glass-panel rounded-2xl border border-outline-variant/10 p-6">
-          <h3 className="font-headline font-semibold text-primary-fixed-dim text-base mb-4 flex items-center gap-2">
-            <span className="material-symbols-outlined text-lg">auto_stories</span>
-            Detailed Breakdown
-          </h3>
-          <div className="grid grid-cols-2 gap-8">
-            {/* Left column: phonetics + word class */}
-            <div className="space-y-4">
-              {breakdown.phonetics && (
-                <div>
-                  <span className="text-[11px] font-label uppercase tracking-widest text-on-surface-variant/50 block mb-1">
-                    Phonetics
-                  </span>
-                  <span className="text-on-surface font-body text-sm">
-                    {breakdown.phonetics}
-                  </span>
-                </div>
-              )}
-              {breakdown.wordClass && (
-                <div>
-                  <span className="text-[11px] font-label uppercase tracking-widest text-on-surface-variant/50 block mb-1">
-                    Word Class
-                  </span>
-                  <span className="inline-block bg-secondary-fixed-dim/10 text-secondary-fixed-dim text-xs font-label font-bold px-2.5 py-1 rounded-lg">
-                    {breakdown.wordClass}
-                  </span>
-                </div>
-              )}
-              <div>
-                <span className="text-[11px] font-label uppercase tracking-widest text-on-surface-variant/50 block mb-1">
-                  Source
-                </span>
-                <span className="text-on-surface font-body text-sm">
-                  {sourceText}
-                </span>
-              </div>
-            </div>
-
-            {/* Right column: definition + synonyms */}
-            <div className="space-y-4">
-              <div>
-                <span className="text-[11px] font-label uppercase tracking-widest text-on-surface-variant/50 block mb-1">
-                  Translation
-                </span>
-                <span className="text-on-surface font-body text-sm leading-relaxed">
-                  {breakdown.definition}
-                </span>
-              </div>
-              {breakdown.synonyms.length > 0 && (
-                <div>
-                  <span className="text-[11px] font-label uppercase tracking-widest text-on-surface-variant/50 block mb-2">
-                    Synonyms
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {breakdown.synonyms.map((syn) => (
-                      <span
-                        key={syn}
-                        className="bg-surface-container-highest/40 text-on-surface-variant text-xs font-label px-2.5 py-1 rounded-lg"
-                      >
-                        {syn}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Bottom floating glass bar */}
       <div className="fixed bottom-6 left-64 right-0 flex justify-center z-40 pointer-events-none px-8">
         <div className="glass-panel rounded-2xl border border-outline-variant/10 px-4 py-3 flex items-center gap-3 pointer-events-auto shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-on-surface-variant/60 hover:text-on-surface hover:bg-surface-container-highest/40 transition-all duration-200 active:scale-95">
-            <span className="material-symbols-outlined text-lg">history</span>
-            <span className="text-sm font-label font-medium">History</span>
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-on-surface-variant/60 hover:text-on-surface hover:bg-surface-container-highest/40 transition-all duration-200 active:scale-95">
-            <span className="material-symbols-outlined text-lg">bookmark</span>
-            <span className="text-sm font-label font-medium">Saved</span>
-          </button>
-          <div className="w-px h-8 bg-outline-variant/20 mx-1" />
           <button
             onClick={handleTranslate}
             disabled={!sourceText.trim() || isTranslating}

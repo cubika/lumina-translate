@@ -20,7 +20,6 @@ export default function DictionaryWorkspace() {
   const [result, setResult] = useState<DictionaryResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isFavorite, setIsFavorite] = useState(false)
   const [recentWords, setRecentWords] = useState<string[]>([])
 
   const tokenize = useCallback((text: string): string[] => {
@@ -42,7 +41,6 @@ export default function DictionaryWorkspace() {
     async (word: string, context?: string) => {
       setLoading(true)
       setError(null)
-      setIsFavorite(false)
       try {
         const settings = loadSettings()
         const data = await lookupWord({
@@ -249,47 +247,29 @@ export default function DictionaryWorkspace() {
           <div className="grid grid-cols-12 gap-4">
             {/* Main Definition Card */}
             <div className="col-span-7 liquid-glass rounded-[2rem] ghost-border p-8 flex flex-col gap-5">
-              <div className="flex items-start justify-between">
-                <div className="flex flex-col gap-1">
-                  <h2 className="text-4xl font-headline font-black tracking-tight text-on-surface">
-                    {result.word}
-                  </h2>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-primary-fixed-dim/70 text-sm font-label">
-                      {result.phonetics}
-                    </span>
-                    <button
-                      onClick={() => {
-                        if ('speechSynthesis' in window) {
-                          const utterance = new SpeechSynthesisUtterance(result.word)
-                          speechSynthesis.speak(utterance)
-                        }
-                      }}
-                      className="w-8 h-8 rounded-full bg-primary-fixed-dim/10 hover:bg-primary-fixed-dim/20 flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer"
-                      title="Pronounce"
-                    >
-                      <span className="material-symbols-outlined text-primary-fixed-dim text-lg">
-                        volume_up
-                      </span>
-                    </button>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsFavorite((f) => !f)}
-                  className="w-10 h-10 rounded-full hover:bg-surface-container-highest/50 flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer"
-                  title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-                >
-                  <span
-                    className="material-symbols-outlined text-secondary-fixed-dim"
-                    style={{
-                      fontVariationSettings: isFavorite
-                        ? "'FILL' 1, 'wght' 400"
-                        : "'FILL' 0, 'wght' 400",
-                    }}
-                  >
-                    star
+              <div className="flex flex-col gap-1">
+                <h2 className="text-4xl font-headline font-black tracking-tight text-on-surface">
+                  {result.word}
+                </h2>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-primary-fixed-dim/70 text-sm font-label">
+                    {result.phonetics}
                   </span>
-                </button>
+                  <button
+                    onClick={() => {
+                      if ('speechSynthesis' in window) {
+                        const utterance = new SpeechSynthesisUtterance(result.word)
+                        speechSynthesis.speak(utterance)
+                      }
+                    }}
+                    className="w-8 h-8 rounded-full bg-primary-fixed-dim/10 hover:bg-primary-fixed-dim/20 flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer"
+                    title="Pronounce"
+                  >
+                    <span className="material-symbols-outlined text-primary-fixed-dim text-lg">
+                      volume_up
+                    </span>
+                  </button>
+                </div>
               </div>
 
               <span className="inline-flex self-start px-3 py-1 rounded-full bg-secondary-fixed-dim/10 text-secondary-fixed-dim text-xs font-label font-semibold uppercase tracking-widest">

@@ -4,8 +4,6 @@ export interface AppSettings {
   openaiApiKey: string
   openaiBaseUrl: string
   anthropicApiKey: string
-  zeroRetention: boolean
-  localProcessing: boolean
   sourceLang: string
   targetLang: string
 }
@@ -18,8 +16,6 @@ export const defaultSettings: AppSettings = {
   openaiApiKey: '',
   openaiBaseUrl: 'https://api.openai.com/v1',
   anthropicApiKey: '',
-  zeroRetention: false,
-  localProcessing: false,
   sourceLang: 'English',
   targetLang: 'Chinese',
 }

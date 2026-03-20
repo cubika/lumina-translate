@@ -246,7 +246,6 @@ export default function ProofreadWorkspace() {
   }, [correctedText])
 
   const pendingCount = issueStatuses.filter((s) => s === 'pending').length
-  const readabilityScore = hasResult ? Math.min(99, Math.max(50, 100 - issues.length * 5)) : 0
 
   // Input view (before proofreading)
   if (!hasResult) {
@@ -363,16 +362,6 @@ export default function ProofreadWorkspace() {
         {/* Horizontal Utility Toolbar */}
         <div className="h-24 glass-panel rounded-[2rem] flex items-center justify-between px-10 border border-outline-variant/10 shadow-xl flex-shrink-0">
           <div className="flex items-center gap-10">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-label font-bold text-on-surface-variant/50 uppercase tracking-widest mb-1">
-                Readability Index
-              </span>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black text-secondary-fixed-dim">{readabilityScore}</span>
-                <span className="text-xs text-on-surface-variant/40">/ 100</span>
-              </div>
-            </div>
-            <div className="h-10 w-[1px] bg-outline-variant/20" />
             <div className="flex gap-3">
               {pendingCount > 0 && (
                 <div className="w-2.5 h-2.5 rounded-full bg-error animate-pulse mt-2" />
@@ -401,9 +390,9 @@ export default function ProofreadWorkspace() {
             <button
               onClick={handleCopy}
               className="w-12 h-12 flex items-center justify-center rounded-2xl bg-surface-container-highest text-on-surface hover:bg-surface-bright transition-all border border-outline-variant/10"
-              title="Share"
+              title="Copy to clipboard"
             >
-              <span className="material-symbols-outlined">share</span>
+              <span className="material-symbols-outlined">content_copy</span>
             </button>
             <button
               onClick={handleExport}
@@ -422,9 +411,6 @@ export default function ProofreadWorkspace() {
       <aside className="w-[380px] h-full flex flex-col border-l border-[#3b494c]/15 bg-surface-container-low/30 p-8 gap-6 overflow-hidden flex-shrink-0">
         <div className="flex items-center justify-between">
           <h3 className="font-headline font-bold text-lg">Detailed Insights</h3>
-          <span className="text-[10px] bg-surface-container-high px-2 py-1 rounded-md text-on-surface-variant border border-outline-variant/20 font-mono">
-            v4.2 Pulse
-          </span>
         </div>
 
         <div className="flex-1 flex flex-col gap-5 overflow-y-auto pr-2">

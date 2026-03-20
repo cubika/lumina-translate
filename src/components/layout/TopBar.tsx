@@ -21,16 +21,6 @@ export default function TopBar({ workspace }: TopBarProps) {
             {workspaceLabels[workspace]}
           </span>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center bg-surface-container-low px-4 py-1.5 rounded-full border border-outline-variant/10">
-            <span className="material-symbols-outlined text-on-surface-variant text-lg mr-2">search</span>
-            <input
-              className="bg-transparent border-none outline-none text-sm text-on-surface placeholder:text-on-surface-variant/50 w-48"
-              placeholder="Search..."
-              type="text"
-            />
-          </div>
-        </div>
       </div>
       <div className="bg-gradient-to-b from-outline-variant/15 to-transparent h-[1px] w-full" />
     </header>
