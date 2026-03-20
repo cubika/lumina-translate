@@ -44,17 +44,24 @@ export interface DictionaryRequest {
   providerType: 'openai' | 'anthropic'
 }
 
-function getApiConfig(): { openaiKey: string; openaiBase: string; anthropicKey: string } {
-  const stored = localStorage.getItem('lumina-settings')
-  if (stored) {
-    const settings = JSON.parse(stored)
-    return {
-      openaiKey: settings.openaiApiKey || '',
-      openaiBase: settings.openaiBaseUrl || 'https://api.openai.com/v1',
-      anthropicKey: settings.anthropicApiKey || '',
-    }
-  }
-  return { openaiKey: '', openaiBase: 'https://api.openai.com/v1', anthropicKey: '' }
+import { loadSettings } from './settings'
+
+async function parseApiError(response: Response): Promise<string> {
+  const text = await response.text()
+  try {
+    const json = JSON.parse(text)
+    return json.error?.message || text
+  } catch { return text }
+}
+
+export function downloadTextFile(content: string, filename: string) {
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 // Route API calls through Electron main process (no CORS).
@@ -66,7 +73,8 @@ async function callAI(
   system?: string,
   maxTokens?: number
 ): Promise<string> {
-  const config = getApiConfig()
+  const settings = loadSettings()
+  const config = { openaiKey: settings.openaiApiKey, openaiBase: settings.openaiBaseUrl, anthropicKey: settings.anthropicApiKey }
 
   // Electron IPC path — no CORS issues
   if (window.electronAPI?.aiCall) {
@@ -103,12 +111,7 @@ async function callAI(
       }),
     })
     if (!response.ok) {
-      const errText = await response.text()
-      let detail = errText
-      try {
-        const errJson = JSON.parse(errText)
-        detail = errJson.error?.message || errText
-      } catch { /* use raw text */ }
+      let detail = await parseApiError(response)
       if (detail === 'Error' || detail === 'error') {
         detail = `Model "${model}" may not be available with your API key. Try a different model in Settings.`
       }
@@ -141,12 +144,7 @@ async function callAI(
       body: JSON.stringify({ model, messages, temperature: 0.3 }),
     })
     if (!response.ok) {
-      const errText = await response.text()
-      let detail = errText
-      try {
-        const errJson = JSON.parse(errText)
-        detail = errJson.error?.message || errText
-      } catch { /* use raw text */ }
+      const detail = await parseApiError(response)
       throw new Error(`OpenAI API error (${response.status}): ${detail}`)
     }
     const data = await response.json()
@@ -167,10 +165,7 @@ function extractJSON(text: string): string {
 export async function translate(req: TranslationRequest): Promise<string> {
   const systemMsg = `You are a professional translator. Translate the following text from ${req.sourceLang} to ${req.targetLang}. Return ONLY the translated text, no explanations.`
 
-  const messages = [
-    { role: 'system', content: systemMsg },
-    { role: 'user', content: req.text },
-  ]
+  const messages = [{ role: 'user', content: req.text }]
 
   // Scale max_tokens: ~1 token per 3 chars, translation can expand 2x, min 4096
   const estimatedTokens = Math.ceil(req.text.length / 3) * 2
@@ -188,10 +183,7 @@ export async function proofread(req: ProofreadRequest): Promise<{
 - "issues": array of objects with "type" (Grammar Fix|Spelling|Tone & Style), "severity" (Critical|Optimal|Minor), "original" (the problematic text), "suggestion" (the fix), "explanation" (why)
 Return ONLY valid JSON, no markdown fences.`
 
-  const messages = [
-    { role: 'system', content: systemMsg },
-    { role: 'user', content: req.text },
-  ]
+  const messages = [{ role: 'user', content: req.text }]
 
   // Proofread returns corrected text + issues JSON, can be large
   const estimatedTokens = Math.max(4096, Math.ceil(req.text.length / 3) * 3)
@@ -228,10 +220,7 @@ export async function lookupWord(req: DictionaryRequest): Promise<{
 - "examples": array of 2 example sentences using the word${langNote}
 Return ONLY valid JSON, no markdown fences.`
 
-  const messages = [
-    { role: 'system', content: systemMsg },
-    { role: 'user', content: `Analyze: ${req.word}` },
-  ]
+  const messages = [{ role: 'user', content: `Analyze: ${req.word}` }]
 
   const result = await callAI(messages, req.model, req.providerType, systemMsg)
   try {

@@ -6,6 +6,57 @@ import { defaultSettings } from '../../services/settings'
 const openaiModels = AI_PROVIDERS.filter((p) => p.type === 'openai')
 const anthropicModels = AI_PROVIDERS.filter((p) => p.type === 'anthropic')
 
+function ModelRow({
+  id,
+  name,
+  type,
+  selectedModel,
+  onSelect,
+}: {
+  id: string
+  name: string
+  type: 'openai' | 'anthropic'
+  selectedModel: string
+  onSelect: (id: string, type: 'openai' | 'anthropic') => void
+}) {
+  const isSelected = selectedModel === id
+  return (
+    <button
+      onClick={() => onSelect(id, type)}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-150 cursor-pointer text-left ${
+        isSelected
+          ? 'bg-primary-fixed-dim/10 border border-primary-fixed-dim/40'
+          : 'border border-transparent hover:bg-surface-container-high/50'
+      }`}
+    >
+      {/* Radio indicator */}
+      <div
+        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+          isSelected ? 'border-primary-fixed-dim' : 'border-outline-variant/40'
+        }`}
+      >
+        {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-primary-fixed-dim" />}
+      </div>
+
+      <span
+        className={`text-sm font-headline font-semibold flex-1 ${
+          isSelected ? 'text-primary-fixed-dim' : 'text-on-surface'
+        }`}
+      >
+        {name}
+      </span>
+
+      {/* "Latest" badge for the first model in each group */}
+      {((type === 'openai' && id === openaiModels[0].id) ||
+        (type === 'anthropic' && id === anthropicModels[0].id)) && (
+        <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-secondary-fixed-dim/15 text-secondary-fixed-dim">
+          Latest
+        </span>
+      )}
+    </button>
+  )
+}
+
 export default function SettingsWorkspace() {
   const { settings, updateSettings } = useSettings()
 
@@ -48,45 +99,6 @@ export default function SettingsWorkspace() {
     (providerType === 'openai' && hasOpenaiKey) ||
     (providerType === 'anthropic' && hasAnthropicKey)
 
-  function ModelRow({ id, name, type }: { id: string; name: string; type: 'openai' | 'anthropic' }) {
-    const isSelected = selectedModel === id
-    return (
-      <button
-        onClick={() => handleSelectModel(id, type)}
-        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-150 cursor-pointer text-left ${
-          isSelected
-            ? 'bg-primary-fixed-dim/10 border border-primary-fixed-dim/40'
-            : 'border border-transparent hover:bg-surface-container-high/50'
-        }`}
-      >
-        {/* Radio indicator */}
-        <div
-          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-            isSelected ? 'border-primary-fixed-dim' : 'border-outline-variant/40'
-          }`}
-        >
-          {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-primary-fixed-dim" />}
-        </div>
-
-        <span
-          className={`text-sm font-headline font-semibold flex-1 ${
-            isSelected ? 'text-primary-fixed-dim' : 'text-on-surface'
-          }`}
-        >
-          {name}
-        </span>
-
-        {/* "Latest" badge for the first model in each group */}
-        {((type === 'openai' && id === openaiModels[0].id) ||
-          (type === 'anthropic' && id === anthropicModels[0].id)) && (
-          <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-secondary-fixed-dim/15 text-secondary-fixed-dim">
-            Latest
-          </span>
-        )}
-      </button>
-    )
-  }
-
   return (
     <div className="h-full overflow-y-auto px-8 py-8">
       {/* Header */}
@@ -127,7 +139,7 @@ export default function SettingsWorkspace() {
                 </div>
                 <div className="flex flex-col gap-1">
                   {openaiModels.map((m) => (
-                    <ModelRow key={m.id} {...m} />
+                    <ModelRow key={m.id} {...m} selectedModel={selectedModel} onSelect={handleSelectModel} />
                   ))}
                 </div>
               </div>
@@ -142,7 +154,7 @@ export default function SettingsWorkspace() {
                 </div>
                 <div className="flex flex-col gap-1">
                   {anthropicModels.map((m) => (
-                    <ModelRow key={m.id} {...m} />
+                    <ModelRow key={m.id} {...m} selectedModel={selectedModel} onSelect={handleSelectModel} />
                   ))}
                 </div>
               </div>

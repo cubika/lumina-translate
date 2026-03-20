@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { proofread } from '../../services/ai'
+import { proofread, downloadTextFile } from '../../services/ai'
 import { loadSettings } from '../../services/settings'
 
 interface Issue {
@@ -236,13 +236,7 @@ export default function ProofreadWorkspace() {
   }, [])
 
   const handleExport = useCallback(() => {
-    const blob = new Blob([correctedText], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'proofread-export.txt'
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadTextFile(correctedText, 'proofread-export.txt')
   }, [correctedText])
 
   const pendingCount = issueStatuses.filter((s) => s === 'pending').length

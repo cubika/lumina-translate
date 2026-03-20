@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import { translate } from '../../services/ai'
+import { translate, downloadTextFile } from '../../services/ai'
 import { loadSettings, LANGUAGES } from '../../services/settings'
 
 interface TranslatedDoc {
@@ -16,6 +16,17 @@ interface TranslatedDoc {
 }
 
 const supportedFormats = ['TXT', 'MD', 'CSV', 'JSON', 'SRT']
+
+function statusColor(status: TranslatedDoc['status']) {
+  switch (status) {
+    case 'Ready':
+      return 'bg-green-500/15 text-green-400 border border-green-500/20'
+    case 'Translating':
+      return 'bg-secondary-fixed-dim/15 text-secondary-fixed-dim border border-secondary-fixed-dim/20'
+    case 'Failed':
+      return 'bg-error/15 text-error border border-error/20'
+  }
+}
 
 export default function DocumentsWorkspace() {
   const [isDragOver, setIsDragOver] = useState(false)
@@ -110,29 +121,12 @@ export default function DocumentsWorkspace() {
   const handleDownload = useCallback((doc: TranslatedDoc) => {
     const ext = doc.name.lastIndexOf('.') >= 0 ? doc.name.slice(doc.name.lastIndexOf('.')) : '.txt'
     const baseName = doc.name.replace(/\.[^.]+$/, '')
-    const blob = new Blob([doc.translatedText], { type: 'text/plain;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${baseName}_${doc.to}${ext}`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadTextFile(doc.translatedText, `${baseName}_${doc.to}${ext}`)
   }, [])
 
   const handleDelete = useCallback((id: number) => {
     setDocs((prev) => prev.filter((d) => d.id !== id))
   }, [])
-
-  const statusColor = (status: TranslatedDoc['status']) => {
-    switch (status) {
-      case 'Ready':
-        return 'bg-green-500/15 text-green-400 border border-green-500/20'
-      case 'Translating':
-        return 'bg-secondary-fixed-dim/15 text-secondary-fixed-dim border border-secondary-fixed-dim/20'
-      case 'Failed':
-        return 'bg-error/15 text-error border border-error/20'
-    }
-  }
 
   return (
     <div className="h-full overflow-y-auto">

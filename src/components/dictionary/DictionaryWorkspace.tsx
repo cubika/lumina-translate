@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { lookupWord } from '../../services/ai'
+import { lookupWord, downloadTextFile } from '../../services/ai'
 import { loadSettings } from '../../services/settings'
 
 interface DictionaryResult {
@@ -11,6 +11,20 @@ interface DictionaryResult {
   synonyms: string[]
   antonyms: string[]
   examples: string[]
+}
+
+function highlightWordInText(text: string, word: string) {
+  const regex = new RegExp(`(${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+  const parts = text.split(regex)
+  return parts.map((part, i) =>
+    regex.test(part) ? (
+      <span key={i} className="text-secondary-fixed-dim font-semibold">
+        {part}
+      </span>
+    ) : (
+      <span key={i}>{part}</span>
+    ),
+  )
 }
 
 export default function DictionaryWorkspace() {
@@ -117,28 +131,8 @@ export default function DictionaryWorkspace() {
       `Examples:\n${result.examples.map((ex) => `  - ${ex}`).join('\n')}`,
     ].join('\n\n')
 
-    const blob = new Blob([text], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${result.word}-analysis.txt`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadTextFile(text, `${result.word}-analysis.txt`)
   }, [result])
-
-  const highlightWordInText = (text: string, word: string) => {
-    const regex = new RegExp(`(${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
-    const parts = text.split(regex)
-    return parts.map((part, i) =>
-      regex.test(part) ? (
-        <span key={i} className="text-secondary-fixed-dim font-semibold">
-          {part}
-        </span>
-      ) : (
-        <span key={i}>{part}</span>
-      ),
-    )
-  }
 
   return (
     <div className="h-full flex flex-col overflow-y-auto px-8 py-6 gap-6">
