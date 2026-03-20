@@ -1,11 +1,13 @@
 import type { WorkspaceId } from '../../App'
+import { useTranslation } from '../../hooks/useTranslation'
+import type { TranslationKey } from '../../i18n'
 
-const workspaceLabels: Record<WorkspaceId, string> = {
-  translate: 'Translate',
-  proofread: 'Proofread',
-  dictionary: 'Dictionary',
-  documents: 'Documents',
-  settings: 'Settings',
+const workspaceLabelKeys: Record<WorkspaceId, TranslationKey> = {
+  translate: 'nav.translate',
+  proofread: 'nav.proofread',
+  dictionary: 'nav.dictionary',
+  documents: 'nav.documents',
+  settings: 'nav.settings',
 }
 
 interface TopBarProps {
@@ -13,12 +15,14 @@ interface TopBarProps {
 }
 
 export default function TopBar({ workspace }: TopBarProps) {
+  const t = useTranslation()
+
   return (
     <header className="bg-surface-container-low/40 backdrop-blur-3xl shadow-[0px_24px_48px_rgba(0,0,0,0.4)] no-drag">
       <div className="flex justify-between items-center px-8 h-16 w-full">
         <div className="flex items-center gap-8">
           <span className="font-headline font-semibold tracking-tight text-lg text-primary-fixed-dim">
-            {workspaceLabels[workspace]}
+            {t(workspaceLabelKeys[workspace])}
           </span>
         </div>
       </div>

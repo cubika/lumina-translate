@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { translate, downloadTextFile } from '../../services/ai'
 import { loadSettings, LANGUAGES } from '../../services/settings'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface TranslatedDoc {
   id: number
@@ -34,6 +35,7 @@ export default function DocumentsWorkspace() {
   const [sourceLang, setSourceLang] = useState(() => loadSettings().sourceLang)
   const [targetLang, setTargetLang] = useState(() => loadSettings().targetLang)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const t = useTranslation()
 
   useEffect(() => {
     const sync = () => {
@@ -178,10 +180,10 @@ export default function DocumentsWorkspace() {
                 </div>
 
                 <h3 className="text-xl font-semibold text-on-surface mb-2 font-headline">
-                  Drop files here to translate
+                  {t('documents.dropTitle')}
                 </h3>
                 <p className="text-sm text-on-surface-variant/50 mb-8">
-                  Drag and drop your text documents, or click to browse
+                  {t('documents.dropDesc')}
                 </p>
 
                 <div className="flex items-center gap-3 mb-8">
@@ -191,7 +193,7 @@ export default function DocumentsWorkspace() {
                   >
                     <span className="flex items-center gap-2">
                       <span className="material-symbols-outlined text-lg">folder_open</span>
-                      Select File
+                      {t('documents.selectFile')}
                     </span>
                   </button>
                   <input
@@ -205,9 +207,9 @@ export default function DocumentsWorkspace() {
 
                 <div className="flex items-center gap-3">
                   {[
-                    { icon: 'text_snippet', label: 'Text-based files' },
-                    { icon: 'language', label: `${LANGUAGES.length} Languages` },
-                    { icon: 'speed', label: 'AI-powered' },
+                    { icon: 'text_snippet', label: t('documents.textBased') },
+                    { icon: 'language', label: `${LANGUAGES.length} ${t('documents.languages')}` },
+                    { icon: 'speed', label: t('documents.aiPowered') },
                   ].map((badge) => (
                     <span
                       key={badge.label}
@@ -228,7 +230,7 @@ export default function DocumentsWorkspace() {
             <div className="glass-panel rounded-2xl border border-outline-variant/10 p-6 flex-1">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-xs uppercase tracking-[0.15em] text-on-surface-variant/50 font-label font-semibold">
-                  Translation Languages
+                  {t('documents.translationLangs')}
                 </h4>
                 <span className="material-symbols-outlined text-primary-fixed-dim text-xl">
                   translate
@@ -237,7 +239,7 @@ export default function DocumentsWorkspace() {
               <div className="space-y-3">
                 <div>
                   <label className="block text-[11px] text-on-surface-variant/40 font-label mb-1.5">
-                    From
+                    {t('documents.from')}
                   </label>
                   <select
                     value={sourceLang}
@@ -253,7 +255,7 @@ export default function DocumentsWorkspace() {
                 </div>
                 <div>
                   <label className="block text-[11px] text-on-surface-variant/40 font-label mb-1.5">
-                    To
+                    {t('documents.to')}
                   </label>
                   <select
                     value={targetLang}
@@ -274,7 +276,7 @@ export default function DocumentsWorkspace() {
             <div className="glass-panel rounded-2xl border border-outline-variant/10 p-6 flex-1">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-xs uppercase tracking-[0.15em] text-on-surface-variant/50 font-label font-semibold">
-                  Supported Formats
+                  {t('documents.supportedFormats')}
                 </h4>
                 <span className="material-symbols-outlined text-secondary-fixed-dim text-xl">
                   extension
@@ -291,7 +293,7 @@ export default function DocumentsWorkspace() {
                 ))}
               </div>
               <p className="text-[11px] text-on-surface-variant/40 mt-4">
-                Text-based files are translated while preserving structure and formatting.
+                {t('documents.supportedDesc')}
               </p>
             </div>
           </div>
@@ -303,17 +305,17 @@ export default function DocumentsWorkspace() {
             <div className="px-6 py-5 border-b border-outline-variant/10 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-on-surface font-headline">
-                  Translations
+                  {t('documents.translations')}
                 </h3>
                 <p className="text-xs text-on-surface-variant/50 mt-0.5">
-                  {docs.length} document{docs.length !== 1 ? 's' : ''} processed
+                  {docs.length} {docs.length !== 1 ? t('documents.documents') : t('documents.document')}
                 </p>
               </div>
               <button
                 onClick={() => setDocs([])}
                 className="px-4 py-2 rounded-full bg-surface-container-high/50 border border-outline-variant/10 text-xs font-semibold text-on-surface-variant/70 hover:text-on-surface hover:bg-surface-container-highest/50 transition-all duration-200 cursor-pointer"
               >
-                Clear All
+                {t('documents.clearAll')}
               </button>
             </div>
 
@@ -321,16 +323,16 @@ export default function DocumentsWorkspace() {
               <thead>
                 <tr className="border-b border-outline-variant/10">
                   <th className="text-left px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] text-on-surface-variant/40 font-label font-semibold">
-                    Document Name
+                    {t('documents.colName')}
                   </th>
                   <th className="text-left px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] text-on-surface-variant/40 font-label font-semibold">
-                    Language
+                    {t('documents.colLang')}
                   </th>
                   <th className="text-left px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] text-on-surface-variant/40 font-label font-semibold">
-                    Status
+                    {t('documents.colStatus')}
                   </th>
                   <th className="text-right px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] text-on-surface-variant/40 font-label font-semibold">
-                    Actions
+                    {t('documents.colActions')}
                   </th>
                 </tr>
               </thead>
@@ -384,7 +386,7 @@ export default function DocumentsWorkspace() {
                           <button
                             onClick={() => handleDownload(doc)}
                             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-container-highest/40 transition-colors duration-150 cursor-pointer"
-                            title="Download translated file"
+                            title={t('documents.download')}
                           >
                             <span className="material-symbols-outlined text-lg text-on-surface-variant/50 hover:text-primary-fixed-dim">
                               download
@@ -394,7 +396,7 @@ export default function DocumentsWorkspace() {
                         <button
                           onClick={() => handleDelete(doc.id)}
                           className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-error/10 transition-colors duration-150 cursor-pointer"
-                          title="Delete"
+                          title={t('documents.delete')}
                         >
                           <span className="material-symbols-outlined text-lg text-on-surface-variant/50 hover:text-error">
                             delete

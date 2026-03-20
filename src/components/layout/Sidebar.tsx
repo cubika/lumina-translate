@@ -1,25 +1,29 @@
 import type { WorkspaceId } from '../../App'
+import { useTranslation } from '../../hooks/useTranslation'
+import type { TranslationKey } from '../../i18n'
+
+const navItems: { id: WorkspaceId; icon: string; labelKey: TranslationKey }[] = [
+  { id: 'translate', icon: 'translate', labelKey: 'nav.translate' },
+  { id: 'proofread', icon: 'spellcheck', labelKey: 'nav.proofread' },
+  { id: 'dictionary', icon: 'menu_book', labelKey: 'nav.dictionary' },
+  { id: 'documents', icon: 'description', labelKey: 'nav.documents' },
+]
 
 interface SidebarProps {
   active: WorkspaceId
   onNavigate: (id: WorkspaceId) => void
 }
 
-const navItems: { id: WorkspaceId; icon: string; label: string }[] = [
-  { id: 'translate', icon: 'translate', label: 'Translate' },
-  { id: 'proofread', icon: 'spellcheck', label: 'Proofread' },
-  { id: 'dictionary', icon: 'menu_book', label: 'Dictionary' },
-  { id: 'documents', icon: 'description', label: 'Documents' },
-]
-
 export default function Sidebar({ active, onNavigate }: SidebarProps) {
+  const t = useTranslation()
+
   return (
     <aside className="h-screen w-64 fixed left-0 top-0 z-50 bg-[#111318] border-r border-[#3b494c]/15 flex flex-col py-8 justify-between font-label">
       <div>
         {/* Brand */}
         <div className="px-6 mb-10 pt-4">
-          <h1 className="font-black text-primary-fixed-dim tracking-tighter text-2xl">Lumina</h1>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-on-surface/40 mt-1">Translation Studio</p>
+          <h1 className="font-black text-primary-fixed-dim tracking-tighter text-2xl">{t('app.name')}</h1>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-on-surface/40 mt-1">{t('app.tagline')}</p>
         </div>
 
         {/* Nav */}
@@ -40,7 +44,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
               >
                 {item.icon}
               </span>
-              <span className="font-medium text-sm tracking-wide">{item.label}</span>
+              <span className="font-medium text-sm tracking-wide">{t(item.labelKey)}</span>
             </button>
           ))}
         </nav>
@@ -57,7 +61,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
           }`}
         >
           <span className="material-symbols-outlined">settings</span>
-          <span className="font-medium text-sm tracking-wide">Settings</span>
+          <span className="font-medium text-sm tracking-wide">{t('nav.settings')}</span>
         </button>
 
       </div>

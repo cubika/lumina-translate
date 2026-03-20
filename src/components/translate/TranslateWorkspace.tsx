@@ -1,8 +1,10 @@
 import { useState, useCallback, useEffect } from 'react'
 import { translate } from '../../services/ai'
 import { loadSettings, LANGUAGES, langToBcp47 } from '../../services/settings'
+import { useTranslation } from '../../hooks/useTranslation'
 
 export default function TranslateWorkspace() {
+  const t = useTranslation()
   const [sourceText, setSourceText] = useState('')
   const [translatedText, setTranslatedText] = useState('')
   const [sourceLang, setSourceLang] = useState(() => loadSettings().sourceLang)
@@ -92,7 +94,7 @@ export default function TranslateWorkspace() {
               <button
                 onClick={handleSwapLanguages}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-highest/50 transition-all duration-200 active:scale-90"
-                title="Swap languages"
+                title={t('translate.swap')}
               >
                 <span className="material-symbols-outlined text-on-surface-variant text-lg">
                   swap_horiz
@@ -103,7 +105,7 @@ export default function TranslateWorkspace() {
               <button
                 onClick={handleClearSource}
                 className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-surface-container-highest/50 transition-all duration-200 active:scale-90"
-                title="Clear"
+                title={t('translate.clear')}
               >
                 <span className="material-symbols-outlined text-on-surface-variant/60 text-base">
                   close
@@ -115,7 +117,7 @@ export default function TranslateWorkspace() {
             <textarea
               value={sourceText}
               onChange={handleSourceChange}
-              placeholder="Enter text to translate..."
+              placeholder={t('translate.placeholder')}
               className="flex-1 bg-transparent text-on-surface font-body text-[15px] leading-relaxed p-5 resize-none outline-none placeholder:text-on-surface-variant/30 w-full"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -125,7 +127,7 @@ export default function TranslateWorkspace() {
             />
             <div className="flex justify-end px-5 pb-3">
               <span className="text-[11px] font-label text-on-surface-variant/60">
-                {sourceText.length} chars
+                {sourceText.length} {t('translate.chars')}
               </span>
             </div>
           </div>
@@ -157,7 +159,7 @@ export default function TranslateWorkspace() {
                 }}
                 disabled={!translatedText}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-highest/50 transition-all duration-200 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Listen"
+                title={t('translate.listen')}
               >
                 <span className="material-symbols-outlined text-on-surface-variant text-lg">
                   volume_up
@@ -167,7 +169,7 @@ export default function TranslateWorkspace() {
                 onClick={handleCopy}
                 disabled={!translatedText}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-highest/50 transition-all duration-200 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed"
-                title={copied ? 'Copied!' : 'Copy translation'}
+                title={copied ? t('translate.copied') : t('translate.copyTranslation')}
               >
                 <span className="material-symbols-outlined text-on-surface-variant text-lg">
                   {copied ? 'check' : 'content_copy'}
@@ -182,7 +184,7 @@ export default function TranslateWorkspace() {
                   <span className="material-symbols-outlined animate-spin text-secondary-fixed-dim">
                     progress_activity
                   </span>
-                  <span className="text-sm font-label">Translating...</span>
+                  <span className="text-sm font-label">{t('translate.translating')}</span>
                 </div>
               ) : translatedText ? (
                 <p className="text-on-surface font-body text-[15px] leading-relaxed whitespace-pre-wrap">
@@ -190,7 +192,7 @@ export default function TranslateWorkspace() {
                 </p>
               ) : (
                 <p className="text-on-surface-variant/30 font-body text-[15px]">
-                  Translation will appear here...
+                  {t('translate.outputPlaceholder')}
                 </p>
               )}
             </div>
@@ -211,12 +213,12 @@ export default function TranslateWorkspace() {
                 <span className="material-symbols-outlined animate-spin text-base">
                   progress_activity
                 </span>
-                Translating...
+                {t('translate.translating')}
               </>
             ) : (
               <>
                 <span className="material-symbols-outlined text-base">translate</span>
-                Translate
+                {t('translate.translate')}
               </>
             )}
           </button>

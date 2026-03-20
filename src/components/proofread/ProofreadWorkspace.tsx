@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { proofread, downloadTextFile } from '../../services/ai'
 import { loadSettings } from '../../services/settings'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface Issue {
   type: string
@@ -172,6 +173,7 @@ function highlightCorrectedText(text: string, issues: Issue[], statuses: IssueSt
 }
 
 export default function ProofreadWorkspace() {
+  const t = useTranslation()
   const [inputText, setInputText] = useState('')
   const [originalText, setOriginalText] = useState('')
   const [correctedText, setCorrectedText] = useState('')
@@ -257,17 +259,17 @@ export default function ProofreadWorkspace() {
         <div className="flex items-center gap-2 px-1">
           <span className="w-2 h-2 rounded-full bg-outline" />
           <span className="font-label text-xs font-bold uppercase tracking-widest text-on-surface-variant">
-            Enter Text to Proofread
+            {t('proofread.title')}
           </span>
           <span className="ml-auto text-[10px] text-on-surface-variant/60 font-label">
-            {wordCount(inputText)} {wordCount(inputText) === 1 ? 'Word' : 'Words'}
+            {wordCount(inputText)} {wordCount(inputText) === 1 ? t('proofread.word') : t('proofread.words')}
           </span>
         </div>
 
         <div className="flex-1 glass-panel rounded-[2rem] p-10 border border-outline-variant/10 shadow-inner flex flex-col">
           <textarea
             className="flex-1 w-full bg-transparent border-none outline-none resize-none text-lg leading-[1.8] text-on-surface-variant/90 placeholder:text-on-surface-variant/30"
-            placeholder="Paste or type the text you'd like to proofread..."
+            placeholder={t('proofread.placeholder')}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
           />
@@ -288,14 +290,14 @@ export default function ProofreadWorkspace() {
             {loading ? (
               <>
                 <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
-                <span>Analyzing...</span>
+                <span>{t('proofread.analyzing')}</span>
               </>
             ) : (
               <>
                 <span className="material-symbols-outlined" style={{ fontVariationSettings: "'wght' 600" }}>
                   spellcheck
                 </span>
-                <span>Proofread</span>
+                <span>{t('proofread.proofread')}</span>
               </>
             )}
           </button>
@@ -316,11 +318,11 @@ export default function ProofreadWorkspace() {
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-outline" />
                 <span className="font-label text-xs font-bold uppercase tracking-widest text-on-surface-variant">
-                  Original Source
+                  {t('proofread.original')}
                 </span>
               </div>
               <span className="text-[10px] text-on-surface-variant/60 font-label">
-                {wordCount(originalText)} {wordCount(originalText) === 1 ? 'Word' : 'Words'}
+                {wordCount(originalText)} {wordCount(originalText) === 1 ? t('proofread.word') : t('proofread.words')}
               </span>
             </div>
             <div className="flex-1 glass-panel rounded-[2rem] p-10 overflow-y-auto border border-outline-variant/10 shadow-inner">
@@ -336,7 +338,7 @@ export default function ProofreadWorkspace() {
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-secondary-fixed-dim shadow-[0_0_8px_rgba(0,218,243,0.5)]" />
                 <span className="font-label text-xs font-bold uppercase tracking-widest text-secondary-fixed-dim">
-                  AI Corrected View
+                  {t('proofread.corrected')}
                 </span>
               </div>
               <div className="flex gap-2">
@@ -344,13 +346,13 @@ export default function ProofreadWorkspace() {
                   onClick={handleCopy}
                   className="text-xs bg-surface-container-high/80 px-4 py-1.5 rounded-lg hover:bg-surface-container-highest transition-colors font-label border border-outline-variant/10"
                 >
-                  {copied ? 'Copied!' : 'Copy'}
+                  {copied ? t('translate.copied') : t('proofread.copy')}
                 </button>
                 <button
                   onClick={handleApplyAll}
                   className="text-xs bg-gradient-to-br from-primary-fixed-dim to-on-primary-container text-white px-4 py-1.5 rounded-lg font-bold font-label shadow-lg hover:brightness-110 transition-all"
                 >
-                  Apply All Changes
+                  {t('proofread.applyAll')}
                 </button>
               </div>
             </div>
@@ -371,10 +373,10 @@ export default function ProofreadWorkspace() {
               )}
               <div className="flex flex-col">
                 <span className="text-[10px] font-label font-bold text-on-surface-variant/50 uppercase tracking-widest mb-1">
-                  Issue Count
+                  {t('proofread.issueCount')}
                 </span>
                 <span className="text-lg font-bold">
-                  {pendingCount} Potential Error{pendingCount !== 1 ? 's' : ''}
+                  {pendingCount} {pendingCount !== 1 ? t('proofread.errors') : t('proofread.error')}
                 </span>
               </div>
             </div>
@@ -386,14 +388,14 @@ export default function ProofreadWorkspace() {
                 setInputText(originalText)
               }}
               className="w-12 h-12 flex items-center justify-center rounded-2xl bg-surface-container-highest text-on-surface hover:bg-surface-bright transition-all border border-outline-variant/10"
-              title="Start over"
+              title={t('proofread.startOver')}
             >
               <span className="material-symbols-outlined">history</span>
             </button>
             <button
               onClick={handleCopy}
               className="w-12 h-12 flex items-center justify-center rounded-2xl bg-surface-container-highest text-on-surface hover:bg-surface-bright transition-all border border-outline-variant/10"
-              title="Copy to clipboard"
+              title={t('proofread.copyClipboard')}
             >
               <span className="material-symbols-outlined">content_copy</span>
             </button>
@@ -404,7 +406,7 @@ export default function ProofreadWorkspace() {
               <span className="material-symbols-outlined" style={{ fontVariationSettings: "'wght' 600" }}>
                 download
               </span>
-              <span>Export Final</span>
+              <span>{t('proofread.export')}</span>
             </button>
           </div>
         </div>
@@ -413,14 +415,14 @@ export default function ProofreadWorkspace() {
       {/* Right Insights Sidebar */}
       <aside className="w-[380px] h-full flex flex-col border-l border-[#3b494c]/15 bg-surface-container-low/30 p-8 gap-6 overflow-hidden flex-shrink-0">
         <div className="flex items-center justify-between">
-          <h3 className="font-headline font-bold text-lg">Detailed Insights</h3>
+          <h3 className="font-headline font-bold text-lg">{t('proofread.insights')}</h3>
         </div>
 
         <div className="flex-1 flex flex-col gap-5 overflow-y-auto pr-2">
           {issues.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-on-surface-variant/40 gap-3">
               <span className="material-symbols-outlined text-4xl">check_circle</span>
-              <p className="text-sm font-label">No issues found</p>
+              <p className="text-sm font-label">{t('proofread.noIssues')}</p>
             </div>
           )}
 
@@ -490,7 +492,7 @@ export default function ProofreadWorkspace() {
                         onClick={() => handleAccept(index)}
                         className="flex-1 py-3 rounded-xl bg-surface-container-highest font-label text-xs font-bold hover:bg-primary-fixed-dim hover:text-on-primary-fixed transition-all"
                       >
-                        Apply Rewrite
+                        {t('proofread.applyRewrite')}
                       </button>
                       <button
                         onClick={() => handleDismiss(index)}
@@ -505,7 +507,7 @@ export default function ProofreadWorkspace() {
                         onClick={() => handleAccept(index)}
                         className="flex-1 py-3 rounded-xl bg-surface-container-highest font-label text-xs font-bold hover:bg-on-surface hover:text-surface transition-all"
                       >
-                        Accept Change
+                        {t('proofread.acceptChange')}
                       </button>
                       <button
                         onClick={() => handleDismiss(index)}
@@ -522,7 +524,7 @@ export default function ProofreadWorkspace() {
                     <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>
                       check_circle
                     </span>
-                    Accepted
+                    {t('proofread.accepted')}
                   </div>
                 )}
               </div>

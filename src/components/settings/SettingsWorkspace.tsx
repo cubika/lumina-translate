@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSettings } from '../../hooks/useSettings'
+import { useTranslation } from '../../hooks/useTranslation'
 import { AI_PROVIDERS, testConnection } from '../../services/ai'
 import { defaultSettings, LANGUAGES } from '../../services/settings'
 
@@ -52,6 +53,7 @@ function ModelRow({
 
 export default function SettingsWorkspace() {
   const { settings, updateSettings } = useSettings()
+  const t = useTranslation()
 
   const [selectedModel, setSelectedModel] = useState(settings.selectedModel)
   const [providerType, setProviderType] = useState(settings.providerType)
@@ -80,7 +82,7 @@ export default function SettingsWorkspace() {
       anthropicApiKey,
       targetLang,
     })
-    setSaveMessage('Settings saved successfully!')
+    setSaveMessage(t('settings.saved'))
     setTimeout(() => setSaveMessage(''), 3000)
 
     const hasKey =
@@ -129,9 +131,9 @@ export default function SettingsWorkspace() {
                 language
               </span>
               <div>
-                <h2 className="text-lg font-headline font-bold text-on-surface">Native Language</h2>
+                <h2 className="text-lg font-headline font-bold text-on-surface">{t('settings.nativeLang')}</h2>
                 <p className="text-xs text-on-surface-variant/50">
-                  Default target language for all translations
+                  {t('settings.nativeLangDesc')}
                 </p>
               </div>
             </div>
@@ -155,9 +157,9 @@ export default function SettingsWorkspace() {
                 psychology
               </span>
               <div>
-                <h2 className="text-lg font-headline font-bold text-on-surface">AI Engine</h2>
+                <h2 className="text-lg font-headline font-bold text-on-surface">{t('settings.aiEngine')}</h2>
                 <p className="text-xs text-on-surface-variant/50">
-                  Select the model that powers your translations
+                  {t('settings.aiEngineDesc')}
                 </p>
               </div>
             </div>
@@ -204,10 +206,10 @@ export default function SettingsWorkspace() {
                 </span>
                 <div>
                   <h2 className="text-lg font-headline font-bold text-on-surface">
-                    API Configuration
+                    {t('settings.apiConfig')}
                   </h2>
                   <p className="text-xs text-on-surface-variant/50">
-                    Manage your API keys and endpoints
+                    {t('settings.apiConfigDesc')}
                   </p>
                 </div>
               </div>
@@ -216,17 +218,17 @@ export default function SettingsWorkspace() {
               {connectionStatus === 'testing' ? (
                 <div className="flex items-center gap-2 text-xs font-label font-semibold px-3 py-1.5 rounded-full bg-secondary-fixed-dim/10 text-secondary-fixed-dim">
                   <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
-                  Testing...
+                  {t('settings.testing')}
                 </div>
               ) : connectionStatus === 'ok' ? (
                 <div className="flex items-center gap-2 text-xs font-label font-semibold px-3 py-1.5 rounded-full bg-[#00c853]/10 text-[#00c853]">
                   <span className="w-2 h-2 rounded-full bg-[#00c853]" />
-                  Connected
+                  {t('settings.connected')}
                 </div>
               ) : connectionStatus === 'failed' ? (
                 <div className="flex items-center gap-2 text-xs font-label font-semibold px-3 py-1.5 rounded-full bg-error/10 text-error" title={connectionError}>
                   <span className="w-2 h-2 rounded-full bg-error" />
-                  Failed
+                  {t('settings.failed')}
                 </div>
               ) : null}
             </div>
@@ -236,7 +238,7 @@ export default function SettingsWorkspace() {
                 <>
                   <div>
                     <label className="block text-xs font-label font-semibold text-on-surface-variant mb-2 tracking-wide">
-                      OpenAI API Key
+                      {t('settings.openaiKey')}
                     </label>
                     <div className="relative">
                       <input
@@ -259,9 +261,9 @@ export default function SettingsWorkspace() {
                   </div>
                   <div>
                     <label className="block text-xs font-label font-semibold text-on-surface-variant mb-2 tracking-wide">
-                      Base URL
+                      {t('settings.baseUrl')}
                       <span className="text-on-surface-variant/30 ml-2 font-normal">
-                        (change for Azure, Ollama, etc.)
+                        {t('settings.baseUrlHint')}
                       </span>
                     </label>
                     <input
@@ -276,7 +278,7 @@ export default function SettingsWorkspace() {
               ) : (
                 <div>
                   <label className="block text-xs font-label font-semibold text-on-surface-variant mb-2 tracking-wide">
-                    Anthropic API Key
+                    {t('settings.anthropicKey')}
                   </label>
                   <div className="relative">
                     <input
@@ -310,13 +312,13 @@ export default function SettingsWorkspace() {
           onClick={handleReset}
           className="px-6 py-2.5 text-sm font-label font-semibold text-on-surface-variant rounded-xl border border-outline-variant/15 hover:bg-surface-container-high/50 transition-colors"
         >
-          Reset to Default
+          {t('settings.reset')}
         </button>
         <button
           onClick={handleSave}
           className="liquid-gradient px-8 py-2.5 text-sm font-label font-bold text-white rounded-xl shadow-lg shadow-primary-fixed-dim/20 hover:shadow-primary-fixed-dim/30 transition-all active:scale-[0.98]"
         >
-          Save Changes
+          {t('settings.save')}
         </button>
       </div>
     </div>

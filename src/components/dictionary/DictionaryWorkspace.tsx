@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { lookupWord, downloadTextFile } from '../../services/ai'
 import { loadSettings } from '../../services/settings'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface DictionaryResult {
   word: string
@@ -28,6 +29,7 @@ function highlightWordInText(text: string, word: string) {
 }
 
 export default function DictionaryWorkspace() {
+  const t = useTranslation()
   const [input, setInput] = useState('')
   const [tokens, setTokens] = useState<string[]>([])
   const [selectedToken, setSelectedToken] = useState<string | null>(null)
@@ -70,13 +72,13 @@ export default function DictionaryWorkspace() {
           return [word, ...filtered].slice(0, 12)
         })
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to look up word')
+        setError(err instanceof Error ? err.message : t('dictionary.error'))
         setResult(null)
       } finally {
         setLoading(false)
       }
     },
-    [],
+    [t],
   )
 
   const handleSubmit = useCallback(
@@ -146,7 +148,7 @@ export default function DictionaryWorkspace() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Enter a word or sentence to analyze..."
+            placeholder={t('dictionary.placeholder')}
             className="flex-1 bg-transparent border-none outline-none text-on-surface placeholder:text-on-surface-variant/40 font-body text-base py-3"
           />
           <button
@@ -157,12 +159,12 @@ export default function DictionaryWorkspace() {
             {loading ? (
               <>
                 <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
-                Analyzing...
+                {t('proofread.analyzing')}
               </>
             ) : (
               <>
                 <span className="material-symbols-outlined text-lg">search</span>
-                Look Up
+                {t('dictionary.lookUp')}
               </>
             )}
           </button>
@@ -173,7 +175,7 @@ export default function DictionaryWorkspace() {
       {tokens.length > 0 && (
         <div className="flex-shrink-0">
           <h3 className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/50 font-label font-semibold mb-3">
-            Source Context
+            {t('dictionary.sourceContext')}
           </h3>
           <div className="flex flex-wrap gap-2">
             {tokens.map((token, i) => (
@@ -209,7 +211,7 @@ export default function DictionaryWorkspace() {
           <div className="flex flex-col items-center gap-4">
             <div className="w-12 h-12 rounded-full border-2 border-primary-fixed-dim/20 border-t-primary-fixed-dim animate-spin" />
             <p className="text-on-surface-variant/60 text-sm font-label">
-              Analyzing word...
+              {t('dictionary.searching')}
             </p>
           </div>
         </div>
@@ -225,10 +227,10 @@ export default function DictionaryWorkspace() {
               </span>
             </div>
             <h2 className="text-lg font-headline font-semibold text-on-surface/60">
-              Dictionary Lookup
+              {t('dictionary.emptyTitle')}
             </h2>
             <p className="text-sm text-on-surface-variant/40 font-body leading-relaxed">
-              Enter a word or sentence above to get detailed definitions, etymology, synonyms, and contextual usage analysis.
+              {t('dictionary.emptyDesc')}
             </p>
           </div>
         </div>
@@ -258,7 +260,7 @@ export default function DictionaryWorkspace() {
                       }
                     }}
                     className="w-8 h-8 rounded-full bg-primary-fixed-dim/10 hover:bg-primary-fixed-dim/20 flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer"
-                    title="Pronounce"
+                    title={t('dictionary.pronounce')}
                   >
                     <span className="material-symbols-outlined text-primary-fixed-dim text-lg">
                       volume_up
@@ -277,7 +279,7 @@ export default function DictionaryWorkspace() {
 
               <div className="border-t border-outline-variant/10 pt-4">
                 <h4 className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/40 font-label font-semibold mb-2">
-                  Etymology
+                  {t('dictionary.etymology')}
                 </h4>
                 <p className="text-on-surface-variant/70 text-xs font-body leading-relaxed italic">
                   {result.etymology}
@@ -293,7 +295,7 @@ export default function DictionaryWorkspace() {
                   <span className="material-symbols-outlined text-base text-primary-fixed-dim/60">
                     link
                   </span>
-                  Synonyms
+                  {t('dictionary.synonyms')}
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {result.synonyms.length > 0 ? (
@@ -308,7 +310,7 @@ export default function DictionaryWorkspace() {
                     ))
                   ) : (
                     <p className="text-on-surface-variant/30 text-xs font-body">
-                      No synonyms found
+                      {t('dictionary.noSynonyms')}
                     </p>
                   )}
                 </div>
@@ -320,7 +322,7 @@ export default function DictionaryWorkspace() {
                   <span className="material-symbols-outlined text-base text-secondary-fixed-dim/60">
                     swap_horiz
                   </span>
-                  Antonyms
+                  {t('dictionary.antonyms')}
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {result.antonyms.length > 0 ? (
@@ -335,7 +337,7 @@ export default function DictionaryWorkspace() {
                     ))
                   ) : (
                     <p className="text-on-surface-variant/30 text-xs font-body">
-                      No antonyms found
+                      {t('dictionary.noAntonyms')}
                     </p>
                   )}
                 </div>
@@ -350,7 +352,7 @@ export default function DictionaryWorkspace() {
                 <span className="material-symbols-outlined text-base text-primary-fixed-dim/60">
                   format_quote
                 </span>
-                Context Usage
+                {t('dictionary.contextUsage')}
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 {result.examples.map((example, i) => (
@@ -376,7 +378,7 @@ export default function DictionaryWorkspace() {
             {/* Recently Viewed */}
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <span className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/40 font-label font-semibold whitespace-nowrap">
-                Recent
+                {t('dictionary.recent')}
               </span>
               <div className="flex gap-2 overflow-x-auto min-w-0">
                 {recentWords.map((word, i) => (
@@ -398,7 +400,7 @@ export default function DictionaryWorkspace() {
                 className="flex items-center gap-2 px-5 py-2 rounded-full bg-surface-container-high/40 hover:bg-surface-container-highest/50 text-on-surface-variant/60 hover:text-on-surface text-xs font-label font-semibold transition-all duration-200 whitespace-nowrap cursor-pointer ml-4"
               >
                 <span className="material-symbols-outlined text-base">download</span>
-                Export Analysis
+                {t('dictionary.export')}
               </button>
             )}
           </div>
