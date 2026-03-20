@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import path from 'path'
 
 let mainWindow: BrowserWindow | null = null
@@ -46,23 +46,4 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow()
   }
-})
-
-// IPC handlers for settings persistence
-ipcMain.handle('store:get', async (_event, key: string) => {
-  const Store = (await import('electron-store')).default
-  const store = new Store()
-  return store.get(key)
-})
-
-ipcMain.handle('store:set', async (_event, key: string, value: unknown) => {
-  const Store = (await import('electron-store')).default
-  const store = new Store()
-  store.set(key, value)
-})
-
-ipcMain.handle('store:delete', async (_event, key: string) => {
-  const Store = (await import('electron-store')).default
-  const store = new Store()
-  store.delete(key)
 })
