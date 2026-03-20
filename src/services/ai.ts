@@ -55,71 +55,72 @@ function getApiConfig(): { openaiKey: string; openaiBase: string; anthropicKey: 
   return { openaiKey: '', openaiBase: 'https://api.openai.com/v1', anthropicKey: '' }
 }
 
-async function callOpenAI(messages: { role: string; content: string }[], model: string): Promise<string> {
-  const config = getApiConfig()
-  if (!config.openaiKey) throw new Error('OpenAI API key not configured. Please set it in Settings.')
-
-  const response = await fetch(`${config.openaiBase}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${config.openaiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: 0.3,
-    }),
-  })
-
-  if (!response.ok) {
-    const err = await response.text()
-    throw new Error(`OpenAI API error: ${response.status} ${err}`)
-  }
-
-  const data = await response.json()
-  return data.choices[0].message.content
-}
-
-async function callAnthropic(messages: { role: string; content: string }[], model: string, system?: string): Promise<string> {
-  const config = getApiConfig()
-  if (!config.anthropicKey) throw new Error('Anthropic API key not configured. Please set it in Settings.')
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': config.anthropicKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 4096,
-      system: system || undefined,
-      messages: messages.filter(m => m.role !== 'system'),
-    }),
-  })
-
-  if (!response.ok) {
-    const err = await response.text()
-    throw new Error(`Anthropic API error: ${response.status} ${err}`)
-  }
-
-  const data = await response.json()
-  return data.content[0].text
-}
-
+// Route API calls through Electron main process (no CORS).
+// Falls back to direct fetch in browser dev mode.
 async function callAI(
   messages: { role: string; content: string }[],
   model: string,
   providerType: 'openai' | 'anthropic',
   system?: string
 ): Promise<string> {
-  if (providerType === 'anthropic') {
-    return callAnthropic(messages, model, system)
+  const config = getApiConfig()
+
+  // Electron IPC path — no CORS issues
+  if (window.electronAPI?.aiCall) {
+    const resp = await window.electronAPI.aiCall({
+      provider: providerType,
+      model,
+      messages,
+      system,
+      openaiKey: config.openaiKey,
+      openaiBase: config.openaiBase,
+      anthropicKey: config.anthropicKey,
+    })
+    if (!resp.ok) throw new Error(resp.error)
+    return resp.result
   }
-  return callOpenAI(messages, model)
+
+  // Browser fallback (dev mode only)
+  if (providerType === 'anthropic') {
+    if (!config.anthropicKey) throw new Error('Anthropic API key not configured. Please set it in Settings.')
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': config.anthropicKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 4096,
+        system: system || undefined,
+        messages: messages.filter(m => m.role !== 'system'),
+      }),
+    })
+    if (!response.ok) {
+      const err = await response.text()
+      throw new Error(`Anthropic API error: ${response.status} ${err}`)
+    }
+    const data = await response.json()
+    return data.content[0].text
+  } else {
+    if (!config.openaiKey) throw new Error('OpenAI API key not configured. Please set it in Settings.')
+    const response = await fetch(`${config.openaiBase}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.openaiKey}`,
+      },
+      body: JSON.stringify({ model, messages, temperature: 0.3 }),
+    })
+    if (!response.ok) {
+      const err = await response.text()
+      throw new Error(`OpenAI API error: ${response.status} ${err}`)
+    }
+    const data = await response.json()
+    return data.choices[0].message.content
+  }
 }
 
 export async function translate(req: TranslationRequest): Promise<string> {

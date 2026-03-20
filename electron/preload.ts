@@ -1,2 +1,5 @@
-// Preload script - exposes safe APIs to renderer
-// Settings are handled via localStorage in the renderer process
+import { contextBridge, ipcRenderer } from 'electron'
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  aiCall: (req: unknown) => ipcRenderer.invoke('ai:call', req),
+})

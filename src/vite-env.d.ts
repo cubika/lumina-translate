@@ -1,11 +1,15 @@
 /// <reference types="vite/client" />
 
 interface ElectronAPI {
-  store: {
-    get: (key: string) => Promise<unknown>
-    set: (key: string, value: unknown) => Promise<void>
-    delete: (key: string) => Promise<void>
-  }
+  aiCall: (req: {
+    provider: 'openai' | 'anthropic'
+    model: string
+    messages: { role: string; content: string }[]
+    system?: string
+    openaiKey?: string
+    openaiBase?: string
+    anthropicKey?: string
+  }) => Promise<{ ok: boolean; result?: string; error?: string }>
 }
 
 declare global {
