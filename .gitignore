@@ -9,3 +9,4 @@ release/
 screenshots/
 design/
 .playwright-mcp/
+*.png
