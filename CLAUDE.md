@@ -1,15 +1,16 @@
 # CLAUDE.md
 
-Lumina Translate — AI-powered desktop translation app. Electron + React + TypeScript + Vite + Tailwind.
+Lumina Translate — AI-powered desktop translation app. Tauri v2 + React + TypeScript + Vite + Tailwind.
 
 ## Build
 
 ```bash
-npm run dev          # Dev server + Electron
-npm run build        # Full build (tsc + Vite + electron-builder)
+npm run dev          # Vite dev server only (browser)
+npm run tauri:dev    # Tauri dev (Vite + native window)
+npm run tauri:build  # Production build
 ```
 
-Verify with `npx tsc --noEmit`. No test suite.
+Verify with `npx tsc --noEmit`. No test suite. Rust backend in `src-tauri/`.
 
 ## Git
 
