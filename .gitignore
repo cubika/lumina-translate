@@ -15,3 +15,4 @@ design/
 *.jpeg
 !public/icon.png
 !public/icon.ico
+docs/
