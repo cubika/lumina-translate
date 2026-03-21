@@ -36,6 +36,7 @@ export default function DocumentsWorkspace() {
   const [docs, setDocs] = useState<TranslatedDoc[]>([])
   const [sourceLang, setSourceLang] = useState(() => loadSettings().sourceLang)
   const [targetLang, setTargetLang] = useState(() => loadSettings().targetLang)
+  const [downloadToast, setDownloadToast] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const t = useTranslation()
 
@@ -218,10 +219,12 @@ export default function DocumentsWorkspace() {
 
   const handleDownload = useCallback((doc: TranslatedDoc) => {
     const origExt = doc.name.lastIndexOf('.') >= 0 ? doc.name.slice(doc.name.lastIndexOf('.')) : '.txt'
-    // PDF output is plain text, so use .txt extension
     const ext = origExt.toLowerCase() === '.pdf' ? '.txt' : origExt
     const baseName = doc.name.replace(/\.[^.]+$/, '')
-    downloadTextFile(doc.translatedText, `${baseName}_${doc.to}${ext}`)
+    const filename = `${baseName}_${doc.to}${ext}`
+    downloadTextFile(doc.translatedText, filename)
+    setDownloadToast(filename)
+    setTimeout(() => setDownloadToast(null), 4000)
   }, [])
 
   const handleDelete = useCallback((id: number) => {
@@ -230,6 +233,13 @@ export default function DocumentsWorkspace() {
 
   return (
     <div className="h-full overflow-y-auto">
+      {/* Download toast */}
+      {downloadToast && (
+        <div className="fixed top-14 right-8 z-50 bg-green-500/15 border border-green-500/30 text-green-400 px-5 py-3 rounded-xl text-sm font-label font-semibold flex items-center gap-2 shadow-lg animate-[fadeIn_0.2s_ease-out]">
+          <span className="material-symbols-outlined text-lg">download_done</span>
+          Downloaded: {downloadToast}
+        </div>
+      )}
       <div className="max-w-[1200px] mx-auto px-8 py-10">
         {/* Bento Grid */}
         <div className="grid grid-cols-12 gap-5 mb-10">
