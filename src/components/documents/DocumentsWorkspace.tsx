@@ -96,8 +96,8 @@ export default function DocumentsWorkspace() {
       setDocs((prev) => [newDoc, ...prev])
 
       try {
-        // ~16K chars per chunk ≈ 4K-5K tokens, safe for all models including Azure Model Router (128K context)
-        const MAX_CHUNK_CHARS = 16000
+        // ~30K chars per chunk ≈ 10K tokens, safe for models with 128K+ context (Azure Model Router, GPT-4o, Claude)
+        const MAX_CHUNK_CHARS = 30000
         const needsChunking = text.length > MAX_CHUNK_CHARS
         console.log(`[DOC] Text length: ${text.length} chars, needsChunking: ${needsChunking}`)
 
@@ -140,7 +140,7 @@ export default function DocumentsWorkspace() {
             setDocs((prev) =>
               prev.map((d) =>
                 d.id === docId
-                  ? { ...d, progress: `${completed}/${chunks.length}` }
+                  ? { ...d, progress: `${Math.round(completed / chunks.length * 100)}%` }
                   : d,
               ),
             )
@@ -466,7 +466,7 @@ export default function DocumentsWorkspace() {
                           <span className="material-symbols-outlined text-sm">error</span>
                         )}
                         {doc.status === 'Translating' && doc.progress
-                          ? `Translating ${doc.progress}`
+                          ? doc.progress
                           : doc.status}
                       </span>
                     </td>
