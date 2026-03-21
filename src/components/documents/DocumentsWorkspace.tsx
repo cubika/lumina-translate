@@ -237,7 +237,7 @@ export default function DocumentsWorkspace() {
       {downloadToast && (
         <div className="fixed top-14 right-8 z-50 bg-green-500/15 border border-green-500/30 text-green-400 px-5 py-3 rounded-xl text-sm font-label font-semibold flex items-center gap-2 shadow-lg animate-[fadeIn_0.2s_ease-out]">
           <span className="material-symbols-outlined text-lg">download_done</span>
-          Downloaded: {downloadToast}
+          Saved to Downloads: {downloadToast}
         </div>
       )}
       <div className="max-w-[1200px] mx-auto px-8 py-10">
