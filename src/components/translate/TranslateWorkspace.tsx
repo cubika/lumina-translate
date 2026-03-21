@@ -3,7 +3,6 @@ import { translateStream, speakText } from '../../services/ai'
 import { loadSettings, LANGUAGES, langToBcp47 } from '../../services/settings'
 import { useTranslation } from '../../hooks/useTranslation'
 import TranslationOutput, { splitParagraphs } from './TranslationOutput'
-import { alignParagraphs, buildTargetToSourceMap } from './alignParagraphs'
 
 export default function TranslateWorkspace() {
   const t = useTranslation()
@@ -16,21 +15,12 @@ export default function TranslateWorkspace() {
   const [swapRotation, setSwapRotation] = useState(0)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const sourceParas = useMemo(() => splitParagraphs(sourceText), [sourceText])
-  const targetParas = useMemo(() => splitParagraphs(translatedText), [translatedText])
-
-  // Gale-Church alignment: maps target paragraph index → source paragraph indices
-  const targetToSource = useMemo(() => {
-    if (!sourceParas.length || !targetParas.length || isTranslating) return new Map<number, number[]>()
-    const groups = alignParagraphs(sourceParas, targetParas)
-    return buildTargetToSourceMap(groups)
-  }, [sourceParas, targetParas, isTranslating])
-
-  // Precompute character ranges for each source paragraph
+  // Precompute character ranges for each source paragraph (for textarea selection)
   const sourceParaRanges = useMemo(() => {
+    const paras = splitParagraphs(sourceText)
     const ranges: { start: number; end: number }[] = []
     let searchFrom = 0
-    for (const para of sourceParas) {
+    for (const para of paras) {
       const start = sourceText.indexOf(para, searchFrom)
       if (start !== -1) {
         ranges.push({ start, end: start + para.length })
@@ -38,7 +28,7 @@ export default function TranslateWorkspace() {
       }
     }
     return ranges
-  }, [sourceText, sourceParas])
+  }, [sourceText])
 
   useEffect(() => {
     const sync = () => {
@@ -58,23 +48,16 @@ export default function TranslateWorkspace() {
     const textarea = textareaRef.current
     if (!textarea) return
 
-    if (idx !== null) {
-      // Look up aligned source paragraphs via Gale-Church mapping
-      const sourceIndices = targetToSource.get(idx)
-      if (sourceIndices && sourceIndices.length > 0) {
-        const firstRange = sourceParaRanges[sourceIndices[0]]
-        const lastRange = sourceParaRanges[sourceIndices[sourceIndices.length - 1]]
-        if (firstRange && lastRange) {
-          textarea.focus({ preventScroll: true })
-          textarea.setSelectionRange(firstRange.start, lastRange.end)
-        }
-      }
+    if (idx !== null && idx < sourceParaRanges.length) {
+      const { start, end } = sourceParaRanges[idx]
+      textarea.focus({ preventScroll: true })
+      textarea.setSelectionRange(start, end)
     } else {
       const len = textarea.value.length
       textarea.setSelectionRange(len, len)
       textarea.blur()
     }
-  }, [targetToSource, sourceParaRanges])
+  }, [sourceParaRanges])
 
   const handleTranslate = useCallback(async () => {
     if (!sourceText.trim() || isTranslating) return

@@ -49,8 +49,8 @@ export default function TranslationOutput({ translatedText, isTranslating, onHov
           onMouseLeave={handleLeave}
         >
           <p
-            className={`text-on-surface font-body text-[15px] leading-relaxed whitespace-pre-wrap rounded-lg px-2 py-1 -mx-2 transition-colors duration-150 ${
-              hoveredIdx === i ? 'bg-primary-fixed-dim/8' : ''
+            className={`text-on-surface font-body text-[15px] leading-relaxed whitespace-pre-wrap rounded-lg px-2 py-1 -mx-2 transition-colors duration-150 cursor-default ${
+              hoveredIdx === i ? 'bg-secondary-fixed-dim/15 border-l-2 border-secondary-fixed-dim/50 pl-3' : 'border-l-2 border-transparent pl-3'
             }`}
           >
             {para}
