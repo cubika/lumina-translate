@@ -15,6 +15,7 @@ interface TranslatedDoc {
   originalText: string
   translatedText: string
   error?: string
+  progress?: string
 }
 
 const supportedFormats = ['TXT', 'MD', 'CSV', 'JSON', 'SRT', 'PDF']
@@ -139,7 +140,7 @@ export default function DocumentsWorkspace() {
             setDocs((prev) =>
               prev.map((d) =>
                 d.id === docId
-                  ? { ...d, translatedText: `Translated ${completed}/${chunks.length} chunks...` }
+                  ? { ...d, progress: `${completed}/${chunks.length}` }
                   : d,
               ),
             )
@@ -464,7 +465,9 @@ export default function DocumentsWorkspace() {
                         {doc.status === 'Failed' && (
                           <span className="material-symbols-outlined text-sm">error</span>
                         )}
-                        {doc.status}
+                        {doc.status === 'Translating' && doc.progress
+                          ? `Translating ${doc.progress}`
+                          : doc.status}
                       </span>
                     </td>
                     <td className="px-6 py-4">
