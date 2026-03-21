@@ -132,10 +132,12 @@ async fn ai_call(req: AiCallRequest) -> AiCallResponse {
 mod edge_tts {
     use futures_util::{SinkExt, StreamExt};
     use sha2::{Sha256, Digest};
-    use tokio_tungstenite::{connect_async, tungstenite::Message};
+    use tokio_tungstenite::tungstenite::Message;
+    use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 
     const TRUSTED_CLIENT_TOKEN: &str = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
-    const CHROMIUM_VERSION: &str = "130.0.2849.68";
+    const CHROMIUM_FULL_VERSION: &str = "143.0.3650.75";
+    const CHROMIUM_MAJOR: &str = "143";
 
     const VOICE_MAP: &[(&str, &str)] = &[
         ("zh", "zh-CN-XiaoxiaoNeural"), ("ja", "ja-JP-NanamiNeural"),
@@ -157,17 +159,20 @@ mod edge_tts {
         VOICE_MAP.iter().find(|(l, _)| *l == prefix).map(|(_, v)| *v).unwrap_or("en-US-JennyNeural")
     }
 
-    /// Generate Sec-MS-GEC token (required since late 2024)
+    /// Generate Sec-MS-GEC token — matches edge-tts Python library algorithm
     fn generate_sec_ms_gec() -> String {
         use std::time::{SystemTime, UNIX_EPOCH};
         let secs = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
-        // Convert to Windows file time (100ns intervals since 1601-01-01)
-        let ticks = (secs + 11644473600) * 10_000_000;
-        // Round down to nearest 5 minutes (3 billion ticks)
-        let ticks = ticks - (ticks % 3_000_000_000);
-        let to_hash = format!("{}{}", ticks, TRUSTED_CLIENT_TOKEN);
+        let win_epoch = secs + 11644473600; // Convert to Windows epoch
+        let rounded = win_epoch - (win_epoch % 300); // Round to 5 minutes
+        let ticks = rounded * 10_000_000; // Convert to 100ns ticks
+        let to_hash = format!("{:.0}{}", ticks as f64, TRUSTED_CLIENT_TOKEN);
         let hash = Sha256::digest(to_hash.as_bytes());
         format!("{:X}", hash)
+    }
+
+    fn generate_muid() -> String {
+        uuid::Uuid::new_v4().to_string().replace('-', "").to_uppercase()
     }
 
     pub async fn synthesize(text: &str, lang: &str) -> Result<Vec<u8>, String> {
@@ -177,10 +182,24 @@ mod edge_tts {
 
         let url = format!(
             "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken={}&Sec-MS-GEC={}&Sec-MS-GEC-Version=1-{}&ConnectionId={}",
-            TRUSTED_CLIENT_TOKEN, sec_ms_gec, CHROMIUM_VERSION, request_id
+            TRUSTED_CLIENT_TOKEN, sec_ms_gec, CHROMIUM_FULL_VERSION, request_id
         );
 
-        let (mut ws, _) = connect_async(&url).await.map_err(|e| format!("TTS connect failed: {}", e))?;
+        let mut request = url.into_client_request().map_err(|e| format!("TTS request build failed: {}", e))?;
+        let headers = request.headers_mut();
+        headers.insert("Pragma", "no-cache".parse().unwrap());
+        headers.insert("Cache-Control", "no-cache".parse().unwrap());
+        headers.insert("Origin", "chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold".parse().unwrap());
+        headers.insert("User-Agent", format!(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{}.0.0.0 Safari/537.36 Edg/{}.0.0.0",
+            CHROMIUM_MAJOR, CHROMIUM_MAJOR
+        ).parse().unwrap());
+        headers.insert("Accept-Encoding", "gzip, deflate, br, zstd".parse().unwrap());
+        headers.insert("Accept-Language", "en-US,en;q=0.9".parse().unwrap());
+        headers.insert("Cookie", format!("muid={};", generate_muid()).parse().unwrap());
+
+        let (mut ws, _) = tokio_tungstenite::connect_async_tls_with_config(request, None, false, None)
+            .await.map_err(|e| format!("TTS connect failed: {}", e))?;
 
         // Send config
         let config = "X-Timestamp:0\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{\"context\":{\"synthesis\":{\"audio\":{\"metadataoptions\":{\"sentenceBoundaryEnabled\":\"false\",\"wordBoundaryEnabled\":\"false\"},\"outputFormat\":\"audio-24khz-48kbitrate-mono-mp3\"}}}}";
