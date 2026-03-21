@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { lookupWord, downloadTextFile, speakText } from '../../services/ai'
-import type { DictionaryResult } from '../../services/ai'
+import type { DictionaryResult, DictionaryExample } from '../../services/ai'
 import { loadSettings, langToBcp47 } from '../../services/settings'
 import { useTranslation } from '../../hooks/useTranslation'
 
@@ -127,7 +127,11 @@ export default function DictionaryWorkspace() {
       `Related Forms: ${result.relatedForms.join(', ')}`,
       `Synonyms: ${result.synonyms.join(', ')}`,
       `Antonyms: ${result.antonyms.join(', ')}`,
-      `Examples:\n${result.examples.map((ex) => `  - ${ex}`).join('\n')}`,
+      `Examples:\n${result.examples.map((ex) => {
+        const s = typeof ex === 'string' ? ex : ex.sentence
+        const t = typeof ex === 'string' ? '' : ex.translation
+        return `  - ${s}${t ? `\n    ${t}` : ''}`
+      }).join('\n')}`,
     ].join('\n\n')
 
     downloadTextFile(text, `${result.word}-analysis.txt`)
@@ -417,12 +421,23 @@ export default function DictionaryWorkspace() {
                 </span>
                 {t('dictionary.contextUsage')}
               </h3>
-              <div className="flex flex-col gap-2">
-                {result.examples.map((example, i) => (
-                  <p key={i} className="text-on-surface/70 text-sm font-body leading-relaxed pl-4">
-                    {highlightWordInText(example, result.word)}
-                  </p>
-                ))}
+              <div className="flex flex-col gap-3">
+                {result.examples.map((ex: DictionaryExample | string, i: number) => {
+                  const sentence = typeof ex === 'string' ? ex : ex.sentence
+                  const translation = typeof ex === 'string' ? '' : ex.translation
+                  return (
+                    <div key={i} className="pl-4">
+                      <p className="text-on-surface/80 text-sm font-body leading-relaxed">
+                        {highlightWordInText(sentence, result.word)}
+                      </p>
+                      {translation && (
+                        <p className="text-on-surface-variant/50 text-xs font-body leading-relaxed mt-1">
+                          {translation}
+                        </p>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}

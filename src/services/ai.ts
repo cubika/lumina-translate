@@ -340,6 +340,11 @@ export interface DictionaryMeaning {
   definitions: DictionaryDefinition[]
 }
 
+export interface DictionaryExample {
+  sentence: string
+  translation: string
+}
+
 export interface DictionaryResult {
   word: string
   phonetics: string
@@ -350,7 +355,7 @@ export interface DictionaryResult {
   relatedForms: string[]
   synonyms: string[]
   antonyms: string[]
-  examples: string[]
+  examples: DictionaryExample[]
 }
 
 export async function lookupWord(req: DictionaryRequest): Promise<DictionaryResult> {
@@ -385,10 +390,12 @@ Return a JSON object (no markdown fences, no extra text):
   "relatedForms": ["related word forms, e.g. for 'run': runner (noun), running (gerund), ran (past tense)"],
   "synonyms": ["5-7 synonyms in the same language as the word"],
   "antonyms": ["2-4 antonyms in the same language as the word"],
-  "examples": ["4 natural example sentences using the word IN THE WORD'S ORIGINAL LANGUAGE, showing different contexts and registers"]
+  "examples": [
+    { "sentence": "example sentence in the word's original language", "translation": "translation of the sentence in ${req.nativeLang || 'English'}" }
+  ]
 }
 
-Include ALL word classes the word can function as (e.g. both noun and verb for "slang"). For each word class, provide the primary definition and any important secondary definitions. Tag each definition with its register (informal, formal, technical, dated, literary, slang, etc.) when applicable.`
+Include ALL word classes the word can function as (e.g. both noun and verb for "slang"). For each word class, provide the primary definition and any important secondary definitions. Tag each definition with its register (informal, formal, technical, dated, literary, slang, etc.) when applicable. Provide 4 example sentences in the word's original language, each with a translation in ${req.nativeLang || 'English'}.`
 
   const messages = [{ role: 'user', content: `Analyze: ${req.word}` }]
 
@@ -406,7 +413,7 @@ Include ALL word classes the word can function as (e.g. both noun and verb for "
       relatedForms: [],
       synonyms: [],
       antonyms: [],
-      examples: [],
+      examples: [{ sentence: result, translation: '' }],
     }
   }
 }
