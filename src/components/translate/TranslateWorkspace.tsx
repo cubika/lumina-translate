@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { translateStream, speakText } from '../../services/ai'
 import { loadSettings, LANGUAGES, langToBcp47 } from '../../services/settings'
 import { useTranslation } from '../../hooks/useTranslation'
+import TranslationOutput from './TranslationOutput'
 
 export default function TranslateWorkspace() {
   const t = useTranslation()
@@ -202,15 +203,12 @@ export default function TranslateWorkspace() {
                   <div className="h-4 bg-surface-container-highest/30 rounded-lg w-full" />
                   <div className="h-4 bg-surface-container-highest/30 rounded-lg w-3/4" />
                 </div>
-              ) : isTranslating && translatedText ? (
-                <p className="text-on-surface font-body text-[15px] leading-relaxed whitespace-pre-wrap">
-                  {translatedText}
-                  <span className="inline-block w-0.5 h-4 bg-secondary-fixed-dim animate-pulse ml-0.5 align-text-bottom" />
-                </p>
               ) : translatedText ? (
-                <p className="text-on-surface font-body text-[15px] leading-relaxed whitespace-pre-wrap">
-                  {translatedText}
-                </p>
+                <TranslationOutput
+                  translatedText={translatedText}
+                  sourceText={sourceText}
+                  isTranslating={isTranslating}
+                />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full gap-3 opacity-30">
                   <span className="material-symbols-outlined text-4xl">translate</span>
