@@ -77,6 +77,14 @@ export default function SettingsWorkspace() {
   }
 
   async function handleSave() {
+    // Check if API-related fields changed (only test connection when they do)
+    const apiChanged =
+      selectedModel !== settings.selectedModel ||
+      providerType !== settings.providerType ||
+      openaiApiKey !== settings.openaiApiKey ||
+      openaiBaseUrl !== settings.openaiBaseUrl ||
+      anthropicApiKey !== settings.anthropicApiKey
+
     updateSettings({
       selectedModel,
       providerType,
@@ -90,6 +98,8 @@ export default function SettingsWorkspace() {
     })
     setShowSaveToast(true)
     setTimeout(() => setShowSaveToast(false), 3000)
+
+    if (!apiChanged) return
 
     const hasKey =
       (providerType === 'openai' && openaiApiKey.length > 0) ||
