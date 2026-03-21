@@ -31,7 +31,9 @@ struct AiCallResponse {
 
 async fn call_openai(req: &AiCallRequest) -> Result<String, String> {
     let base = req.openai_base.as_deref().unwrap_or("https://api.openai.com/v1");
-    let key = req.openai_key.as_deref().ok_or("OpenAI API key not configured. Please set it in Settings.")?;
+    let key = req.openai_key.as_deref()
+        .filter(|k| !k.is_empty())
+        .ok_or("OpenAI API key not configured. Please set it in Settings.")?;
 
     let mut messages: Vec<Message> = Vec::new();
     if let Some(sys) = &req.system {
@@ -70,7 +72,9 @@ async fn call_openai(req: &AiCallRequest) -> Result<String, String> {
 }
 
 async fn call_anthropic(req: &AiCallRequest) -> Result<String, String> {
-    let key = req.anthropic_key.as_deref().ok_or("Anthropic API key not configured. Please set it in Settings.")?;
+    let key = req.anthropic_key.as_deref()
+        .filter(|k| !k.is_empty())
+        .ok_or("Anthropic API key not configured. Please set it in Settings.")?;
 
     let messages: Vec<&Message> = req.messages.iter().filter(|m| m.role != "system").collect();
 
