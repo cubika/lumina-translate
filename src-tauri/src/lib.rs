@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use tauri::State;
+use tauri::{AppHandle, Emitter, State};
 
 #[derive(Deserialize)]
 struct AiCallRequest {
@@ -125,12 +125,172 @@ async fn call_anthropic(client: &reqwest::Client, req: &AiCallRequest) -> Result
         .ok_or_else(|| "Unexpected Anthropic response format".into())
 }
 
+async fn stream_openai(app: &AppHandle, client: &reqwest::Client, req: &AiCallRequest) -> Result<String, String> {
+    let base = req.openai_base.as_deref().unwrap_or("https://api.openai.com/v1");
+    let key = req.openai_key.as_deref()
+        .filter(|k| !k.is_empty())
+        .ok_or("OpenAI API key not configured. Please set it in Settings.")?;
+
+    let mut messages: Vec<Message> = Vec::new();
+    if let Some(sys) = &req.system {
+        messages.push(Message { role: "system".into(), content: sys.clone() });
+    }
+    messages.extend(req.messages.clone());
+
+    let body = serde_json::json!({
+        "model": req.model,
+        "messages": messages,
+        "temperature": 0.3,
+        "max_tokens": req.max_tokens.unwrap_or(4096),
+        "stream": true,
+    });
+
+    let resp = client
+        .post(format!("{}/chat/completions", base))
+        .header("Content-Type", "application/json")
+        .header("Authorization", format!("Bearer {}", key))
+        .timeout(std::time::Duration::from_secs(120))
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| {
+            if e.is_timeout() {
+                "Request timed out. Please try again or use a shorter text.".to_string()
+            } else {
+                format!("OpenAI request failed: {}", e)
+            }
+        })?;
+
+    if !resp.status().is_success() {
+        let status = resp.status().as_u16();
+        let text = resp.text().await.unwrap_or_default();
+        return Err(format!("OpenAI API error ({}): {}", status, text));
+    }
+
+    use futures_util::StreamExt;
+    let mut stream = resp.bytes_stream();
+    let mut full_text = String::new();
+    let mut buffer = String::new();
+
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk.map_err(|e| format!("Stream error: {}", e))?;
+        buffer.push_str(&String::from_utf8_lossy(&chunk));
+
+        while let Some(line_end) = buffer.find('\n') {
+            let line = buffer[..line_end].trim().to_string();
+            buffer = buffer[line_end + 1..].to_string();
+
+            if line.starts_with("data: ") {
+                let data = &line[6..];
+                if data == "[DONE]" { continue; }
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
+                    if let Some(content) = json["choices"][0]["delta"]["content"].as_str() {
+                        full_text.push_str(content);
+                        let _ = app.emit("ai-stream-chunk", content);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(full_text)
+}
+
+async fn stream_anthropic(app: &AppHandle, client: &reqwest::Client, req: &AiCallRequest) -> Result<String, String> {
+    let key = req.anthropic_key.as_deref()
+        .filter(|k| !k.is_empty())
+        .ok_or("Anthropic API key not configured. Please set it in Settings.")?;
+
+    let messages: Vec<&Message> = req.messages.iter().filter(|m| m.role != "system").collect();
+
+    let mut body = serde_json::json!({
+        "model": req.model,
+        "max_tokens": req.max_tokens.unwrap_or(4096),
+        "messages": messages,
+        "stream": true,
+    });
+
+    if let Some(sys) = &req.system {
+        body["system"] = serde_json::Value::String(sys.clone());
+    }
+
+    let resp = client
+        .post("https://api.anthropic.com/v1/messages")
+        .header("Content-Type", "application/json")
+        .header("x-api-key", key)
+        .header("anthropic-version", "2023-06-01")
+        .timeout(std::time::Duration::from_secs(120))
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| {
+            if e.is_timeout() {
+                "Request timed out. Please try again or use a shorter text.".to_string()
+            } else {
+                format!("Anthropic request failed: {}", e)
+            }
+        })?;
+
+    if !resp.status().is_success() {
+        let status = resp.status().as_u16();
+        let text = resp.text().await.unwrap_or_default();
+        return Err(format!("Anthropic API error ({}): {}", status, text));
+    }
+
+    use futures_util::StreamExt;
+    let mut stream = resp.bytes_stream();
+    let mut full_text = String::new();
+    let mut buffer = String::new();
+
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk.map_err(|e| format!("Stream error: {}", e))?;
+        buffer.push_str(&String::from_utf8_lossy(&chunk));
+
+        while let Some(line_end) = buffer.find('\n') {
+            let line = buffer[..line_end].trim().to_string();
+            buffer = buffer[line_end + 1..].to_string();
+
+            if line.starts_with("data: ") {
+                let data = &line[6..];
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
+                    if json["type"] == "content_block_delta" {
+                        if let Some(text) = json["delta"]["text"].as_str() {
+                            full_text.push_str(text);
+                            let _ = app.emit("ai-stream-chunk", text);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(full_text)
+}
+
 #[tauri::command]
 async fn ai_call(client: State<'_, reqwest::Client>, req: AiCallRequest) -> Result<AiCallResponse, String> {
     let result = if req.provider == "anthropic" {
         call_anthropic(&client, &req).await
     } else {
         call_openai(&client, &req).await
+    };
+
+    Ok(match result {
+        Ok(text) => AiCallResponse { ok: true, result: Some(text), error: None },
+        Err(e) => AiCallResponse { ok: false, result: None, error: Some(e) },
+    })
+}
+
+#[tauri::command]
+async fn ai_call_stream(
+    app: AppHandle,
+    client: State<'_, reqwest::Client>,
+    req: AiCallRequest,
+) -> Result<AiCallResponse, String> {
+    let result = if req.provider == "anthropic" {
+        stream_anthropic(&app, &client, &req).await
+    } else {
+        stream_openai(&app, &client, &req).await
     };
 
     Ok(match result {
@@ -269,7 +429,7 @@ pub fn run() {
                 .build()
                 .expect("failed to build HTTP client")
         )
-        .invoke_handler(tauri::generate_handler![ai_call, speak])
+        .invoke_handler(tauri::generate_handler![ai_call, ai_call_stream, speak])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

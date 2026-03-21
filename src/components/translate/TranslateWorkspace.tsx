@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { translate, speakText } from '../../services/ai'
+import { translateStream, speakText } from '../../services/ai'
 import { loadSettings, LANGUAGES, langToBcp47 } from '../../services/settings'
 import { useTranslation } from '../../hooks/useTranslation'
 
@@ -40,13 +40,18 @@ export default function TranslateWorkspace() {
 
     try {
       const settings = loadSettings()
-      const result = await translate({
-        text: sourceText,
-        sourceLang,
-        targetLang,
-        model: settings.selectedModel,
-        providerType: settings.providerType,
-      })
+      const result = await translateStream(
+        {
+          text: sourceText,
+          sourceLang,
+          targetLang,
+          model: settings.selectedModel,
+          providerType: settings.providerType,
+        },
+        (chunk) => {
+          setTranslatedText(prev => prev + chunk)
+        }
+      )
       setTranslatedText(result)
     } catch (err) {
       setTranslatedText(
@@ -188,13 +193,20 @@ export default function TranslateWorkspace() {
           </div>
           <div className="bg-surface-container-high rounded-2xl border border-outline-variant/10 flex-1 flex flex-col min-h-[260px] border-l-2 border-l-secondary-fixed-dim">
             <div className="flex-1 p-5 overflow-y-auto">
-              {isTranslating ? (
-                <div className="flex items-center gap-3 text-on-surface-variant/60">
-                  <span className="material-symbols-outlined animate-spin text-secondary-fixed-dim">
-                    progress_activity
-                  </span>
-                  <span className="text-sm font-label">{t('translate.translating')}</span>
+              {isTranslating && !translatedText ? (
+                <div className="flex flex-col gap-3 animate-pulse">
+                  <div className="h-4 bg-surface-container-highest/30 rounded-lg w-full" />
+                  <div className="h-4 bg-surface-container-highest/30 rounded-lg w-11/12" />
+                  <div className="h-4 bg-surface-container-highest/30 rounded-lg w-4/5" />
+                  <div className="h-4 bg-surface-container-highest/30 rounded-lg w-9/12" />
+                  <div className="h-4 bg-surface-container-highest/30 rounded-lg w-full" />
+                  <div className="h-4 bg-surface-container-highest/30 rounded-lg w-3/4" />
                 </div>
+              ) : isTranslating && translatedText ? (
+                <p className="text-on-surface font-body text-[15px] leading-relaxed whitespace-pre-wrap">
+                  {translatedText}
+                  <span className="inline-block w-0.5 h-4 bg-secondary-fixed-dim animate-pulse ml-0.5 align-text-bottom" />
+                </p>
               ) : translatedText ? (
                 <p className="text-on-surface font-body text-[15px] leading-relaxed whitespace-pre-wrap">
                   {translatedText}

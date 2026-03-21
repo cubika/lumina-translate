@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
 
 export interface AIProvider {
   id: string
@@ -165,6 +166,46 @@ async function callAI(
   }
 }
 
+async function callAIStream(
+  messages: { role: string; content: string }[],
+  model: string,
+  providerType: 'openai' | 'anthropic',
+  onChunk: (text: string) => void,
+  system?: string,
+  maxTokens?: number
+): Promise<string> {
+  const settings = loadSettings()
+  const config = { openaiKey: settings.openaiApiKey, openaiBase: settings.openaiBaseUrl, anthropicKey: settings.anthropicApiKey }
+
+  if (window.__TAURI_INTERNALS__) {
+    const unlisten = await listen<string>('ai-stream-chunk', (event) => {
+      onChunk(event.payload)
+    })
+
+    try {
+      const resp = await invoke<{ ok: boolean; result?: string; error?: string }>('ai_call_stream', {
+        req: {
+          provider: providerType,
+          model,
+          messages,
+          system,
+          openaiKey: config.openaiKey,
+          openaiBase: config.openaiBase,
+          anthropicKey: config.anthropicKey,
+          maxTokens: maxTokens || 4096,
+        },
+      })
+      if (!resp.ok) throw new Error(resp.error)
+      return resp.result!
+    } finally {
+      unlisten()
+    }
+  }
+
+  // Browser fallback — no streaming
+  return callAI(messages, model, providerType, system, maxTokens)
+}
+
 let currentAudio: HTMLAudioElement | null = null
 
 export async function speakText(text: string, lang: string): Promise<void> {
@@ -234,6 +275,29 @@ Additional rules:
   const maxTokens = Math.max(4096, estimatedTokens)
 
   return callAI(messages, req.model, req.providerType, systemMsg, maxTokens)
+}
+
+export async function translateStream(
+  req: TranslationRequest,
+  onChunk: (text: string) => void
+): Promise<string> {
+  const systemMsg = `You are a master translator fluent in ${req.sourceLang} and ${req.targetLang}. Follow these three principles:
+
+1. Faithful: Accurately convey the original meaning — no additions, omissions, or distortions
+2. Expressive: Write naturally in ${req.targetLang} — the translation should read as if originally written in ${req.targetLang}, not as a word-for-word rendering. Use idiomatic expressions and natural sentence structures of ${req.targetLang}
+3. Elegant: Match or elevate the literary quality — choose precise, refined wording appropriate to the register
+
+Additional rules:
+- Preserve formatting: line breaks, bullet points, markdown, tables, code blocks
+- For technical terms with no standard translation, keep the original in parentheses
+- For proper nouns (names, brands, places), keep as-is unless a widely accepted translation exists
+- Output ONLY the translated text, no explanations or commentary`
+
+  const messages = [{ role: 'user', content: req.text }]
+  const estimatedTokens = Math.ceil(req.text.length / 3) * 2
+  const maxTokens = Math.max(4096, estimatedTokens)
+
+  return callAIStream(messages, req.model, req.providerType, onChunk, systemMsg, maxTokens)
 }
 
 export async function proofread(req: ProofreadRequest): Promise<{
