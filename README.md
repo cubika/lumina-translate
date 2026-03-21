@@ -1,80 +1,110 @@
 # Lumina Translate
 
-AI-powered desktop translation app with a "Liquid Glass" aesthetic.
+> AI-powered desktop translation studio — translate, proofread, and look up words in 24 languages.
 
-Built with Tauri v2 + React + TypeScript + Vite + Tailwind CSS.
+Built with **Tauri v2 + React + TypeScript + Vite + Tailwind CSS**. Portable 11 MB executable.
+
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Platform](https://img.shields.io/badge/platform-Windows-0078d4)
+![Tauri](https://img.shields.io/badge/Tauri-v2-ffc131)
+
+---
+
+## Highlights
+
+- **Streaming Translation** — See tokens appear in real-time as the AI translates
+- **Paragraph Alignment** — Hover a translated paragraph to highlight the corresponding source text
+- **PDF Support** — Translate entire PDF documents with chunked parallel processing
+- **Smart Dictionary** — Multi-meaning definitions with register tags, usage notes, frequency indicators, example sentences with translations, and etymology
+- **Proofread Modes** — Grammar-only fix, readability improvement, or full style revision
+- **24 Languages** — UI fully localized in all supported languages
+- **Edge Cloud TTS** — Neural text-to-speech for all 24 languages
+- **Tone & Style Control** — Standard, Formal, Casual, Academic, or Creative tone with adjustable complexity
 
 ## Features
 
-- **Translate** — Text translation between 24 languages, powered by OpenAI or Anthropic models
-- **Proofread** — Grammar, spelling, and style analysis with detailed issue-by-issue corrections
-- **Dictionary** — Multilingual word lookup with definitions, etymology, synonyms, antonyms, and example sentences (analysis displayed in your native language)
-- **Documents** — Upload and translate entire text files (.txt, .md, .csv, .json, .srt) with drag-and-drop
-- **i18n** — UI available in English, Chinese, and Japanese (auto-switches with native language setting)
-- **TTS** — Native Windows text-to-speech for translated text
+### Translate
+Side-by-side editor with streaming output, language swap animation, skeleton loading, and bidirectional paragraph hover highlighting. Supports tone and simplicity settings.
 
-## Getting Started
+### Proofread
+Three modes: **Grammar Only** (fix errors, keep your voice), **Improve Readability** (rewrite for clarity and flow), or **Full Style Revision** (thorough editing with polish). Side-by-side comparison with accept/dismiss per issue.
+
+### Dictionary
+Look up any word to get:
+- Multiple word classes (noun, verb, adjective) with numbered definitions
+- Register tags per definition (informal, technical, dated, literary)
+- IPA pronunciation with text-to-speech
+- Usage notes, word frequency, related forms
+- Synonyms and antonyms (clickable for quick lookup)
+- Example sentences with translations in your native language
+- Etymology and word origin
+
+### Documents
+Drag-and-drop translation for **TXT, MD, CSV, JSON, SRT, and PDF** files. Large documents are automatically chunked and translated in parallel with progress percentage.
+
+## Quick Start
+
+### Download
+
+Grab the latest portable exe from [Releases](https://github.com/cubika/lumina-translate/releases) — no installation needed, just run it.
+
+### Configure
+
+1. Open the app and go to **Settings** (or press `Ctrl+5`)
+2. Set your **Native Language**
+3. Pick an AI model and enter your API key
+   - [Get an OpenAI key](https://platform.openai.com/api-keys)
+   - [Get an Anthropic key](https://console.anthropic.com/settings/keys)
+   - Or use Azure OpenAI / any OpenAI-compatible endpoint via custom Base URL
+4. Click **Save Changes**
+
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+1` to `Ctrl+5` | Switch workspaces |
+| `Ctrl+Enter` | Translate / Proofread |
+
+## Build from Source
 
 ### Prerequisites
 
 - Node.js 18+
-- Rust toolchain (for building Tauri)
-- An API key from [Anthropic](https://console.anthropic.com/) or [OpenAI](https://platform.openai.com/)
+- Rust toolchain ([rustup.rs](https://rustup.rs/))
 
-### Install
+### Install & Run
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/cubika/lumina-translate.git
 cd lumina-translate
 npm install
-```
-
-### Development
-
-```bash
-npm run dev          # Vite dev server only (browser, uses proxy for API calls)
-npm run tauri:dev    # Tauri dev (Vite + native window with full TTS support)
+npm run tauri:dev    # Dev mode with hot reload
 ```
 
 ### Build
 
 ```bash
-npm run tauri:build  # Production build → src-tauri/target/release/
-npm run package      # Build + copy portable exe → release/LuminaTranslate.exe
+npm run package      # Portable exe → release/LuminaTranslate.exe (~11 MB)
 ```
 
-The portable exe (≈11 MB) can be distributed directly — no installation needed.
+## Supported Models
 
-## Configuration
-
-1. Open the app and go to **Settings**
-2. Set your **Native Language** (determines UI language and default translation target)
-3. Select an AI model (Claude Haiku 4.5 works with standard API keys)
-4. Enter your API key
-5. Click **Save Changes**
-
-### TTS Voice Support
-
-Text-to-speech uses Windows native speech synthesis. To speak non-English languages, install the corresponding language pack in Windows Settings → Time & Language → Language & Region.
-
-### Supported Models
-
-| Provider | Model ID | Name |
-|----------|----------|------|
-| Anthropic | `claude-opus-4-6` | Claude Opus 4.6 |
-| Anthropic | `claude-sonnet-4-6` | Claude Sonnet 4.6 |
-| Anthropic | `claude-haiku-4-5-20251001` | Claude Haiku 4.5 |
-| OpenAI | `gpt-5.4` | GPT-5.4 |
-| OpenAI | `gpt-5.4-mini` | GPT-5.4 Mini |
-| OpenAI | `gpt-4.1` | GPT-4.1 |
-| OpenAI | `gpt-4o` | GPT-4o |
+| Provider | Models |
+|----------|--------|
+| **OpenAI** | GPT-5.4, GPT-5.4 Mini/Nano, GPT-5.2, GPT-4.1, GPT-4.1 Mini/Nano, GPT-4o, GPT-4o Mini |
+| **Anthropic** | Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5 |
+| **Azure** | Model Router or any OpenAI-compatible endpoint |
 
 ## Tech Stack
 
-- **Frontend**: React 18, Tailwind CSS 3, TypeScript
-- **Desktop**: Tauri v2 (Rust backend, WebView2)
-- **Build**: Vite 6
-- **TTS**: Windows Media SpeechSynthesis (native, via Rust)
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18, Tailwind CSS 3, TypeScript |
+| Desktop | Tauri v2 (Rust, WebView2) |
+| Build | Vite 6 |
+| TTS | Edge Cloud Neural Voices |
+| PDF | pdfjs-dist (Mozilla) |
+| AI | OpenAI & Anthropic APIs with streaming SSE |
 
 ## License
 
