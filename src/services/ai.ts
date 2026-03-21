@@ -63,8 +63,14 @@ export function downloadTextFile(content: string, filename: string) {
   const a = document.createElement('a')
   a.href = url
   a.download = filename
+  a.style.display = 'none'
+  document.body.appendChild(a)
   a.click()
-  URL.revokeObjectURL(url)
+  // Delay cleanup so the download actually starts
+  setTimeout(() => {
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }, 100)
 }
 
 // Route API calls through Tauri backend (no CORS).

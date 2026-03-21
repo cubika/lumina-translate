@@ -15,6 +15,7 @@ interface TranslatedDoc {
   originalText: string
   translatedText: string
   error?: string
+  progress?: string
 }
 
 const supportedFormats = ['TXT', 'MD', 'CSV', 'JSON', 'SRT', 'PDF']
@@ -35,6 +36,7 @@ export default function DocumentsWorkspace() {
   const [docs, setDocs] = useState<TranslatedDoc[]>([])
   const [sourceLang, setSourceLang] = useState(() => loadSettings().sourceLang)
   const [targetLang, setTargetLang] = useState(() => loadSettings().targetLang)
+  const [downloadToast, setDownloadToast] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const t = useTranslation()
 
@@ -57,12 +59,22 @@ export default function DocumentsWorkspace() {
       let text: string
       let pages: string[] | null = null
       if (isPdf) {
-        pages = await extractPdfPages(file)
-        text = pages.join('\n\n')
+        console.log(`[PDF] Extracting text from ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)...`)
+        try {
+          pages = await extractPdfPages(file)
+          text = pages.join('\n\n')
+          console.log(`[PDF] Extracted ${pages.length} pages, ${text.length} chars total`)
+        } catch (e) {
+          console.error('[PDF] Extraction failed:', e)
+          throw e
+        }
       } else {
         text = await file.text()
       }
-      if (!text.trim()) return
+      if (!text.trim()) {
+        console.warn('[DOC] File is empty after extraction')
+        return
+      }
 
       const docId = Date.now()
       const sizeKB = (file.size / 1024).toFixed(1)
@@ -85,9 +97,10 @@ export default function DocumentsWorkspace() {
       setDocs((prev) => [newDoc, ...prev])
 
       try {
-        // Chunk large texts (~3000 chars per chunk ≈ 1000 tokens, safe for any model)
-        const MAX_CHUNK_CHARS = 8000
+        // ~30K chars per chunk ≈ 10K tokens, safe for models with 128K+ context (Azure Model Router, GPT-4o, Claude)
+        const MAX_CHUNK_CHARS = 30000
         const needsChunking = text.length > MAX_CHUNK_CHARS
+        console.log(`[DOC] Text length: ${text.length} chars, needsChunking: ${needsChunking}`)
 
         let result: string
 
@@ -106,18 +119,15 @@ export default function DocumentsWorkspace() {
           }
           if (current.trim()) chunks.push(current.trim())
 
-          // Translate each chunk sequentially
-          const translated: string[] = []
-          for (let i = 0; i < chunks.length; i++) {
-            // Update progress
-            setDocs((prev) =>
-              prev.map((d) =>
-                d.id === docId
-                  ? { ...d, translatedText: `Translating chunk ${i + 1}/${chunks.length}...` }
-                  : d,
-              ),
-            )
+          console.log(`[DOC] Split into ${chunks.length} chunks: ${chunks.map((c, i) => `chunk ${i + 1}: ${c.length} chars`).join(', ')}`)
 
+          // Translate chunks in parallel with concurrency limit
+          const CONCURRENCY = 5
+          const translated: string[] = new Array(chunks.length).fill('')
+          let completed = 0
+
+          const translateChunk = async (i: number) => {
+            console.log(`[DOC] Translating chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars)...`)
             const chunkResult = await translate({
               text: chunks[i],
               sourceLang,
@@ -125,10 +135,26 @@ export default function DocumentsWorkspace() {
               model: settings.selectedModel,
               providerType: settings.providerType,
             })
-            translated.push(chunkResult)
+            translated[i] = chunkResult
+            completed++
+            console.log(`[DOC] Chunk ${i + 1} done (${completed}/${chunks.length}), result: ${chunkResult.length} chars`)
+            setDocs((prev) =>
+              prev.map((d) =>
+                d.id === docId
+                  ? { ...d, progress: `${Math.round(completed / chunks.length * 100)}%` }
+                  : d,
+              ),
+            )
+          }
+
+          // Process in batches of CONCURRENCY
+          for (let i = 0; i < chunks.length; i += CONCURRENCY) {
+            const batch = chunks.slice(i, i + CONCURRENCY).map((_, j) => translateChunk(i + j))
+            await Promise.all(batch)
           }
           result = translated.join('\n\n')
         } else {
+          console.log(`[DOC] Single-shot translation (${text.length} chars)...`)
           result = await translate({
             text,
             sourceLang,
@@ -138,16 +164,19 @@ export default function DocumentsWorkspace() {
           })
         }
 
+        console.log(`[DOC] Translation complete, total: ${result.length} chars`)
         setDocs((prev) =>
           prev.map((d) =>
             d.id === docId ? { ...d, status: 'Ready', translatedText: result } : d,
           ),
         )
       } catch (err) {
+        const errMsg = err instanceof Error ? err.message : 'Translation failed'
+        console.error(`[DOC] Translation failed:`, errMsg, err)
         setDocs((prev) =>
           prev.map((d) =>
             d.id === docId
-              ? { ...d, status: 'Failed', error: err instanceof Error ? err.message : 'Translation failed' }
+              ? { ...d, status: 'Failed', error: errMsg }
               : d,
           ),
         )
@@ -189,9 +218,13 @@ export default function DocumentsWorkspace() {
   )
 
   const handleDownload = useCallback((doc: TranslatedDoc) => {
-    const ext = doc.name.lastIndexOf('.') >= 0 ? doc.name.slice(doc.name.lastIndexOf('.')) : '.txt'
+    const origExt = doc.name.lastIndexOf('.') >= 0 ? doc.name.slice(doc.name.lastIndexOf('.')) : '.txt'
+    const ext = origExt.toLowerCase() === '.pdf' ? '.txt' : origExt
     const baseName = doc.name.replace(/\.[^.]+$/, '')
-    downloadTextFile(doc.translatedText, `${baseName}_${doc.to}${ext}`)
+    const filename = `${baseName}_${doc.to}${ext}`
+    downloadTextFile(doc.translatedText, filename)
+    setDownloadToast(filename)
+    setTimeout(() => setDownloadToast(null), 4000)
   }, [])
 
   const handleDelete = useCallback((id: number) => {
@@ -200,6 +233,13 @@ export default function DocumentsWorkspace() {
 
   return (
     <div className="h-full overflow-y-auto">
+      {/* Download toast */}
+      {downloadToast && (
+        <div className="fixed top-14 right-8 z-50 bg-green-500/15 border border-green-500/30 text-green-400 px-5 py-3 rounded-xl text-sm font-label font-semibold flex items-center gap-2 shadow-lg animate-[fadeIn_0.2s_ease-out]">
+          <span className="material-symbols-outlined text-lg">download_done</span>
+          Saved to Downloads: {downloadToast}
+        </div>
+      )}
       <div className="max-w-[1200px] mx-auto px-8 py-10">
         {/* Bento Grid */}
         <div className="grid grid-cols-12 gap-5 mb-10">
@@ -435,7 +475,9 @@ export default function DocumentsWorkspace() {
                         {doc.status === 'Failed' && (
                           <span className="material-symbols-outlined text-sm">error</span>
                         )}
-                        {doc.status}
+                        {doc.status === 'Translating' && doc.progress
+                          ? doc.progress
+                          : doc.status}
                       </span>
                     </td>
                     <td className="px-6 py-4">
