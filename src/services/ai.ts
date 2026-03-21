@@ -339,10 +339,13 @@ export async function lookupWord(req: DictionaryRequest): Promise<{
   synonyms: string[]
   antonyms: string[]
   examples: string[]
+  usageNote: string
+  frequency: string
+  relatedForms: string[]
 }> {
   const contextPart = req.context ? `\nContext: "${req.context}"` : ''
   const langNote = req.nativeLang && req.nativeLang !== 'English'
-    ? `\nIMPORTANT: Write "definition", "etymology", and "examples" in ${req.nativeLang}. Keep "word", "phonetics", "wordClass", "synonyms", and "antonyms" in the original language of the word.`
+    ? `\nIMPORTANT: Write "definition", "etymology", and "usageNote" in ${req.nativeLang}. Keep "word", "phonetics", "wordClass", "synonyms", "antonyms", "examples", "relatedForms", and "frequency" in the original language of the word.`
     : ''
   const systemMsg = `You are a multilingual linguistic expert. Analyze the given word or phrase. Detect the input language automatically.${contextPart}${langNote}
 
@@ -353,9 +356,12 @@ Return a JSON object (no markdown fences, no extra text):
   "wordClass": "Noun | Verb | Adjective | Adverb | etc.",
   "definition": "clear, concise definition",
   "etymology": "origin and historical development of the word",
+  "usageNote": "how the word is typically used: formal/informal register, common collocations, nuances, or pitfalls",
+  "frequency": "Common | Academic | Literary | Rare | Archaic",
+  "relatedForms": ["related word forms, e.g. for 'run': runner (noun), running (gerund), ran (past tense)"],
   "synonyms": ["5-7 synonyms in the same language as the word"],
   "antonyms": ["2-4 antonyms in the same language as the word"],
-  "examples": ["2 natural example sentences using the word in context"]
+  "examples": ["3 natural example sentences using the word IN THE WORD'S ORIGINAL LANGUAGE, showing different contexts and registers"]
 }`
 
   const messages = [{ role: 'user', content: `Analyze: ${req.word}` }]
@@ -370,6 +376,9 @@ Return a JSON object (no markdown fences, no extra text):
       wordClass: '',
       definition: result,
       etymology: '',
+      usageNote: '',
+      frequency: '',
+      relatedForms: [],
       synonyms: [],
       antonyms: [],
       examples: [],

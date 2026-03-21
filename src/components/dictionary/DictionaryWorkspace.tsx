@@ -9,6 +9,9 @@ interface DictionaryResult {
   wordClass: string
   definition: string
   etymology: string
+  usageNote: string
+  frequency: string
+  relatedForms: string[]
   synonyms: string[]
   antonyms: string[]
   examples: string[]
@@ -268,13 +271,29 @@ export default function DictionaryWorkspace() {
                 </div>
               </div>
 
-              <span className="inline-flex self-start px-3 py-1 rounded-full bg-secondary-fixed-dim/10 text-secondary-fixed-dim text-xs font-label font-semibold uppercase tracking-widest">
-                {result.wordClass}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex px-3 py-1 rounded-full bg-secondary-fixed-dim/10 text-secondary-fixed-dim text-xs font-label font-semibold uppercase tracking-widest">
+                  {result.wordClass}
+                </span>
+                {result.frequency && (
+                  <span className="inline-flex px-2.5 py-1 rounded-full bg-surface-container-high/60 text-on-surface-variant/60 text-[10px] font-label font-semibold uppercase tracking-widest">
+                    {result.frequency}
+                  </span>
+                )}
+              </div>
 
               <p className="text-on-surface/80 font-body text-sm leading-relaxed">
                 {result.definition}
               </p>
+
+              {result.usageNote && (
+                <div className="bg-primary-fixed-dim/5 rounded-xl px-4 py-3">
+                  <p className="text-on-surface-variant/70 text-xs font-body leading-relaxed">
+                    <span className="text-primary-fixed-dim/70 font-semibold">Usage: </span>
+                    {result.usageNote}
+                  </p>
+                </div>
+              )}
 
               <div className="border-t border-outline-variant/10 pt-4">
                 <h4 className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/40 font-label font-semibold mb-2">
@@ -344,6 +363,28 @@ export default function DictionaryWorkspace() {
             </div>
           </div>
 
+          {/* Related Forms */}
+          {result.relatedForms && result.relatedForms.length > 0 && (
+            <div className="liquid-glass rounded-[2rem] ghost-border p-6 flex flex-col gap-4">
+              <h3 className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/50 font-label font-semibold flex items-center gap-2">
+                <span className="material-symbols-outlined text-base text-primary-fixed-dim/60">
+                  account_tree
+                </span>
+                Related Forms
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {result.relatedForms.map((form, i) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1.5 rounded-full bg-surface-container-high/50 text-on-surface-variant/70 text-xs font-label font-medium"
+                  >
+                    {form}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Context Usage - full width */}
           {result.examples.length > 0 && (
             <div className="liquid-glass rounded-[2rem] ghost-border p-6 flex flex-col gap-4">
@@ -355,10 +396,7 @@ export default function DictionaryWorkspace() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {result.examples.map((example, i) => (
-                  <div
-                    key={i}
-                    className="bg-surface-container/60 rounded-2xl p-4 border-l-2 border-primary-fixed-dim/20"
-                  >
+                  <div key={i} className="rounded-2xl p-4">
                     <p className="text-on-surface/70 text-sm font-body leading-relaxed">
                       {highlightWordInText(example, result.word)}
                     </p>
