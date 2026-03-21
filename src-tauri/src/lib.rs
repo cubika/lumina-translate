@@ -53,10 +53,17 @@ async fn call_openai(client: &reqwest::Client, req: &AiCallRequest) -> Result<St
         .post(format!("{}/chat/completions", base))
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {}", key))
+        .timeout(std::time::Duration::from_secs(120))
         .json(&body)
         .send()
         .await
-        .map_err(|e| format!("OpenAI request failed: {}", e))?;
+        .map_err(|e| {
+            if e.is_timeout() {
+                "Request timed out. Please try again or use a shorter text.".to_string()
+            } else {
+                format!("OpenAI request failed: {}", e)
+            }
+        })?;
 
     if !resp.status().is_success() {
         let status = resp.status().as_u16();
@@ -93,10 +100,17 @@ async fn call_anthropic(client: &reqwest::Client, req: &AiCallRequest) -> Result
         .header("Content-Type", "application/json")
         .header("x-api-key", key)
         .header("anthropic-version", "2023-06-01")
+        .timeout(std::time::Duration::from_secs(120))
         .json(&body)
         .send()
         .await
-        .map_err(|e| format!("Anthropic request failed: {}", e))?;
+        .map_err(|e| {
+            if e.is_timeout() {
+                "Request timed out. Please try again or use a shorter text.".to_string()
+            } else {
+                format!("Anthropic request failed: {}", e)
+            }
+        })?;
 
     if !resp.status().is_success() {
         let status = resp.status().as_u16();
@@ -137,6 +151,7 @@ mod edge_tts {
     const TRUSTED_CLIENT_TOKEN: &str = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
     const CHROMIUM_FULL_VERSION: &str = "143.0.3650.75";
     const TTS_TIMEOUT: Duration = Duration::from_secs(30);
+    const MAX_AUDIO_BYTES: usize = 10 * 1024 * 1024; // 10 MB
 
     const VOICE_MAP: &[(&str, &str)] = &[
         ("zh", "zh-CN-XiaoxiaoNeural"), ("ja", "ja-JP-NanamiNeural"),
@@ -215,6 +230,9 @@ mod edge_tts {
                     Ok(Message::Binary(data)) => {
                         if let Some(pos) = data.windows(12).position(|w| w == b"Path:audio\r\n") {
                             buf.extend_from_slice(&data[pos + 12..]);
+                            if buf.len() > MAX_AUDIO_BYTES {
+                                break;
+                            }
                         }
                     }
                     Ok(Message::Text(t)) => {
@@ -242,7 +260,15 @@ async fn speak(text: String, lang: String) -> Result<Vec<u8>, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .manage(reqwest::Client::new())
+        .manage(
+            reqwest::Client::builder()
+                .pool_max_idle_per_host(5)
+                .pool_idle_timeout(std::time::Duration::from_secs(90))
+                .connect_timeout(std::time::Duration::from_secs(10))
+                .user_agent("LuminaTranslate/1.0")
+                .build()
+                .expect("failed to build HTTP client")
+        )
         .invoke_handler(tauri::generate_handler![ai_call, speak])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -11,6 +11,7 @@ export default function TranslateWorkspace() {
   const [targetLang, setTargetLang] = useState(() => loadSettings().targetLang)
   const [isTranslating, setIsTranslating] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [swapRotation, setSwapRotation] = useState(0)
 
   useEffect(() => {
     const sync = () => {
@@ -60,6 +61,7 @@ export default function TranslateWorkspace() {
   }, [translatedText])
 
   const handleSwapLanguages = useCallback(() => {
+    setSwapRotation(r => r + 180)
     setSourceLang(targetLang)
     setTargetLang(sourceLang)
     if (translatedText) {
@@ -94,10 +96,14 @@ export default function TranslateWorkspace() {
               </select>
               <button
                 onClick={handleSwapLanguages}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-highest/50 transition-all duration-200 active:scale-90"
+                disabled={isTranslating}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-highest/50 transition-all duration-200 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed"
                 title={t('translate.swap')}
               >
-                <span className="material-symbols-outlined text-on-surface-variant text-lg">
+                <span
+                  className="material-symbols-outlined text-on-surface-variant text-lg transition-transform duration-300"
+                  style={{ transform: `rotate(${swapRotation}deg)` }}
+                >
                   swap_horiz
                 </span>
               </button>
@@ -189,9 +195,12 @@ export default function TranslateWorkspace() {
                   {translatedText}
                 </p>
               ) : (
-                <p className="text-on-surface-variant/30 font-body text-[15px]">
-                  {t('translate.outputPlaceholder')}
-                </p>
+                <div className="flex flex-col items-center justify-center h-full gap-3 opacity-30">
+                  <span className="material-symbols-outlined text-4xl">translate</span>
+                  <p className="text-on-surface-variant font-body text-sm">
+                    {t('translate.outputPlaceholder')}
+                  </p>
+                </div>
               )}
             </div>
           </div>
