@@ -126,98 +126,11 @@ async fn ai_call(req: AiCallRequest) -> AiCallResponse {
     }
 }
 
-/// Edge TTS — uses Microsoft's cloud neural voices (same as Edge "Read Aloud")
-mod edge_tts {
-    use futures_util::{SinkExt, StreamExt};
-    use tokio_tungstenite::{connect_async, tungstenite::Message};
-
-    const VOICE_MAP: &[(&str, &str)] = &[
-        ("zh", "zh-CN-XiaoxiaoNeural"), ("ja", "ja-JP-NanamiNeural"),
-        ("ko", "ko-KR-SunHiNeural"),   ("fr", "fr-FR-DeniseNeural"),
-        ("de", "de-DE-KatjaNeural"),    ("es", "es-ES-ElviraNeural"),
-        ("pt", "pt-BR-FranciscaNeural"),("ru", "ru-RU-SvetlanaNeural"),
-        ("ar", "ar-SA-ZariyahNeural"),  ("it", "it-IT-ElsaNeural"),
-        ("nl", "nl-NL-ColetteNeural"),  ("tr", "tr-TR-EmelNeural"),
-        ("vi", "vi-VN-HoaiMyNeural"),   ("th", "th-TH-PremwadeeNeural"),
-        ("id", "id-ID-GadisNeural"),    ("hi", "hi-IN-SwaraNeural"),
-        ("pl", "pl-PL-AgnieszkaNeural"),("sv", "sv-SE-SofieNeural"),
-        ("cs", "cs-CZ-VlastaNeural"),   ("ro", "ro-RO-AlinaNeural"),
-        ("hu", "hu-HU-NoemiNeural"),    ("uk", "uk-UA-PolinaNeural"),
-        ("el", "el-GR-AthinaNeural"),   ("en", "en-US-JennyNeural"),
-    ];
-
-    fn voice_for_lang(lang: &str) -> &'static str {
-        let prefix = lang.split('-').next().unwrap_or("en");
-        VOICE_MAP.iter().find(|(l, _)| *l == prefix).map(|(_, v)| *v).unwrap_or("en-US-JennyNeural")
-    }
-
-    pub async fn synthesize(text: &str, lang: &str) -> Result<Vec<u8>, String> {
-        let voice = voice_for_lang(lang);
-        let request_id = uuid::Uuid::new_v4().to_string().replace('-', "");
-
-        let url = format!(
-            "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId={}",
-            request_id
-        );
-
-        let (mut ws, _) = connect_async(&url).await.map_err(|e| format!("WebSocket connect failed: {}", e))?;
-
-        // Send config
-        let config = format!(
-            "X-Timestamp:0\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{{\"context\":{{\"synthesis\":{{\"audio\":{{\"metadataoptions\":{{\"sentenceBoundaryEnabled\":\"false\",\"wordBoundaryEnabled\":\"false\"}},\"outputFormat\":\"audio-24khz-48kbitrate-mono-mp3\"}}}}}}}}",
-        );
-        ws.send(Message::Text(config.into())).await.map_err(|e| format!("Send config failed: {}", e))?;
-
-        // Send SSML
-        let ssml = format!(
-            "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='{}'><voice name='{}'>{}</voice></speak>",
-            lang,
-            voice,
-            text.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
-        );
-        let ssml_msg = format!(
-            "X-RequestId:{}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:0\r\nPath:ssml\r\n\r\n{}",
-            request_id, ssml
-        );
-        ws.send(Message::Text(ssml_msg.into())).await.map_err(|e| format!("Send SSML failed: {}", e))?;
-
-        // Collect audio bytes
-        let mut audio = Vec::new();
-        while let Some(msg) = ws.next().await {
-            match msg {
-                Ok(Message::Binary(data)) => {
-                    // Binary messages have a header ending with "Path:audio\r\n"
-                    // Audio data follows after the header
-                    if let Some(pos) = data.windows(12).position(|w| w == b"Path:audio\r\n") {
-                        audio.extend_from_slice(&data[pos + 12..]);
-                    }
-                }
-                Ok(Message::Text(t)) => {
-                    if t.contains("Path:turn.end") {
-                        break;
-                    }
-                }
-                Err(_) => break,
-                _ => {}
-            }
-        }
-
-        if audio.is_empty() {
-            return Err("No audio received from Edge TTS".into());
-        }
-        Ok(audio)
-    }
-}
-
-#[tauri::command]
-async fn speak(text: String, lang: String) -> Result<Vec<u8>, String> {
-    edge_tts::synthesize(&text, &lang).await
-}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![ai_call, speak])
+        .invoke_handler(tauri::generate_handler![ai_call])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

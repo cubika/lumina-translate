@@ -165,51 +165,24 @@ async function callAI(
   }
 }
 
-let currentAudio: HTMLAudioElement | null = null
+// Pre-load voices at startup (they load async in Chromium/WebView2)
+let cachedVoices: SpeechSynthesisVoice[] = []
+if ('speechSynthesis' in window) {
+  cachedVoices = speechSynthesis.getVoices()
+  speechSynthesis.addEventListener('voiceschanged', () => {
+    cachedVoices = speechSynthesis.getVoices()
+  })
+}
 
-export async function speakText(text: string, lang: string): Promise<void> {
-  // Stop any currently playing audio
-  if (currentAudio) {
-    currentAudio.pause()
-    currentAudio = null
-  }
-
-  // Tauri path — try native Windows TTS first, fall back to Web Speech API
-  if (window.__TAURI_INTERNALS__) {
-    try {
-      const audioBytes = await invoke<number[]>('speak', { text, lang })
-      const blob = new Blob([new Uint8Array(audioBytes)], { type: 'audio/mpeg' })
-      const url = URL.createObjectURL(blob)
-      currentAudio = new Audio(url)
-      currentAudio.onended = () => { URL.revokeObjectURL(url); currentAudio = null }
-      await currentAudio.play()
-      return
-    } catch {
-      // No native voice — fall through to Web Speech API
-    }
-  }
-
-  // Web Speech API fallback
-  if ('speechSynthesis' in window) {
-    speechSynthesis.cancel()
-    // Ensure voices are loaded (async in Chromium/WebView2)
-    let voices = speechSynthesis.getVoices()
-    if (voices.length === 0) {
-      voices = await new Promise<SpeechSynthesisVoice[]>(resolve => {
-        const onVoices = () => { resolve(speechSynthesis.getVoices()) }
-        speechSynthesis.addEventListener('voiceschanged', onVoices, { once: true })
-        setTimeout(() => resolve(speechSynthesis.getVoices()), 500)
-      })
-    }
-    const utterance = new SpeechSynthesisUtterance(text)
-    const prefix = lang.split('-')[0]
-    const match = voices.find(v => v.lang.startsWith(prefix))
-    if (match) {
-      utterance.voice = match
-    }
-    utterance.lang = lang
-    speechSynthesis.speak(utterance)
-  }
+export function speakText(text: string, lang: string): void {
+  if (!('speechSynthesis' in window)) return
+  speechSynthesis.cancel()
+  const utterance = new SpeechSynthesisUtterance(text)
+  const prefix = lang.split('-')[0]
+  const match = cachedVoices.find(v => v.lang.startsWith(prefix))
+  if (match) utterance.voice = match
+  utterance.lang = lang
+  speechSynthesis.speak(utterance)
 }
 
 function extractJSON(text: string): string {
