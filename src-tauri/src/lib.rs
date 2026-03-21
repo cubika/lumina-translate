@@ -126,63 +126,92 @@ async fn ai_call(req: AiCallRequest) -> AiCallResponse {
     }
 }
 
-#[cfg(windows)]
-mod tts {
-    use windows::Media::SpeechSynthesis::SpeechSynthesizer;
-    use windows::Storage::Streams::DataReader;
+/// Edge TTS — uses Microsoft's cloud neural voices (same as Edge "Read Aloud")
+mod edge_tts {
+    use futures_util::{SinkExt, StreamExt};
+    use tokio_tungstenite::{connect_async, tungstenite::Message};
 
-    pub fn speak_sync(text: &str, lang: &str) -> Result<Vec<u8>, String> {
-        let synth = SpeechSynthesizer::new().map_err(|e| format!("TTS init failed: {}", e))?;
+    const VOICE_MAP: &[(&str, &str)] = &[
+        ("zh", "zh-CN-XiaoxiaoNeural"), ("ja", "ja-JP-NanamiNeural"),
+        ("ko", "ko-KR-SunHiNeural"),   ("fr", "fr-FR-DeniseNeural"),
+        ("de", "de-DE-KatjaNeural"),    ("es", "es-ES-ElviraNeural"),
+        ("pt", "pt-BR-FranciscaNeural"),("ru", "ru-RU-SvetlanaNeural"),
+        ("ar", "ar-SA-ZariyahNeural"),  ("it", "it-IT-ElsaNeural"),
+        ("nl", "nl-NL-ColetteNeural"),  ("tr", "tr-TR-EmelNeural"),
+        ("vi", "vi-VN-HoaiMyNeural"),   ("th", "th-TH-PremwadeeNeural"),
+        ("id", "id-ID-GadisNeural"),    ("hi", "hi-IN-SwaraNeural"),
+        ("pl", "pl-PL-AgnieszkaNeural"),("sv", "sv-SE-SofieNeural"),
+        ("cs", "cs-CZ-VlastaNeural"),   ("ro", "ro-RO-AlinaNeural"),
+        ("hu", "hu-HU-NoemiNeural"),    ("uk", "uk-UA-PolinaNeural"),
+        ("el", "el-GR-AthinaNeural"),   ("en", "en-US-JennyNeural"),
+    ];
 
-        // Try to find a voice matching the requested language
-        let lang_prefix = lang.split('-').next().unwrap_or("");
-        let voices = SpeechSynthesizer::AllVoices().map_err(|e| format!("Get voices failed: {}", e))?;
-        let mut found_voice = false;
-        for i in 0..voices.Size().unwrap_or(0) {
-            if let Ok(voice) = voices.GetAt(i) {
-                if let Ok(voice_lang) = voice.Language() {
-                    if voice_lang.to_string().starts_with(lang_prefix) {
-                        let _ = synth.SetVoice(&voice);
-                        found_voice = true;
+    fn voice_for_lang(lang: &str) -> &'static str {
+        let prefix = lang.split('-').next().unwrap_or("en");
+        VOICE_MAP.iter().find(|(l, _)| *l == prefix).map(|(_, v)| *v).unwrap_or("en-US-JennyNeural")
+    }
+
+    pub async fn synthesize(text: &str, lang: &str) -> Result<Vec<u8>, String> {
+        let voice = voice_for_lang(lang);
+        let request_id = uuid::Uuid::new_v4().to_string().replace('-', "");
+
+        let url = format!(
+            "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId={}",
+            request_id
+        );
+
+        let (mut ws, _) = connect_async(&url).await.map_err(|e| format!("WebSocket connect failed: {}", e))?;
+
+        // Send config
+        let config = format!(
+            "X-Timestamp:0\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{{\"context\":{{\"synthesis\":{{\"audio\":{{\"metadataoptions\":{{\"sentenceBoundaryEnabled\":\"false\",\"wordBoundaryEnabled\":\"false\"}},\"outputFormat\":\"audio-24khz-48kbitrate-mono-mp3\"}}}}}}}}",
+        );
+        ws.send(Message::Text(config.into())).await.map_err(|e| format!("Send config failed: {}", e))?;
+
+        // Send SSML
+        let ssml = format!(
+            "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='{}'><voice name='{}'>{}</voice></speak>",
+            lang,
+            voice,
+            text.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
+        );
+        let ssml_msg = format!(
+            "X-RequestId:{}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:0\r\nPath:ssml\r\n\r\n{}",
+            request_id, ssml
+        );
+        ws.send(Message::Text(ssml_msg.into())).await.map_err(|e| format!("Send SSML failed: {}", e))?;
+
+        // Collect audio bytes
+        let mut audio = Vec::new();
+        while let Some(msg) = ws.next().await {
+            match msg {
+                Ok(Message::Binary(data)) => {
+                    // Binary messages have a header ending with "Path:audio\r\n"
+                    // Audio data follows after the header
+                    if let Some(pos) = data.windows(12).position(|w| w == b"Path:audio\r\n") {
+                        audio.extend_from_slice(&data[pos + 12..]);
+                    }
+                }
+                Ok(Message::Text(t)) => {
+                    if t.contains("Path:turn.end") {
                         break;
                     }
                 }
+                Err(_) => break,
+                _ => {}
             }
         }
-        if !found_voice && lang_prefix != "en" {
-            return Err(format!("No voice installed for '{}'. Install the language pack in Windows Settings → Time & Language.", lang));
+
+        if audio.is_empty() {
+            return Err("No audio received from Edge TTS".into());
         }
-
-        let stream = synth
-            .SynthesizeTextToStreamAsync(&text.into())
-            .map_err(|e| format!("TTS synthesis failed: {}", e))?
-            .get()
-            .map_err(|e| format!("TTS await failed: {}", e))?;
-
-        let size = stream.Size().map_err(|e| format!("Stream size error: {}", e))? as u32;
-        let reader = DataReader::CreateDataReader(&stream.GetInputStreamAt(0).map_err(|e| format!("{}", e))?)
-            .map_err(|e| format!("Reader error: {}", e))?;
-        reader.LoadAsync(size).map_err(|e| format!("{}", e))?.get().map_err(|e| format!("{}", e))?;
-
-        let mut buf = vec![0u8; size as usize];
-        reader.ReadBytes(&mut buf).map_err(|e| format!("Read error: {}", e))?;
-        Ok(buf)
+        Ok(audio)
     }
 }
 
 #[tauri::command]
 async fn speak(text: String, lang: String) -> Result<Vec<u8>, String> {
-    #[cfg(windows)]
-    {
-        tokio::task::spawn_blocking(move || tts::speak_sync(&text, &lang))
-            .await
-            .map_err(|e| format!("Task error: {}", e))?
-    }
-    #[cfg(not(windows))]
-    {
-        let _ = (text, lang);
-        Err("TTS not supported on this platform".into())
-    }
+    edge_tts::synthesize(&text, &lang).await
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

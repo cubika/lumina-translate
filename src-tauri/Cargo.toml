@@ -29,3 +29,6 @@ windows = { version = "0.61", features = [
   "Foundation",
   "Foundation_Collections",
 ] }
+tokio-tungstenite = { version = "0.26", features = ["native-tls"] }
+futures-util = "0.3"
+uuid = { version = "1", features = ["v4"] }

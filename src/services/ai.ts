@@ -177,8 +177,8 @@ export async function speakText(text: string, lang: string): Promise<void> {
   // Tauri path — try native Windows TTS first, fall back to Web Speech API
   if (window.__TAURI_INTERNALS__) {
     try {
-      const wavBytes = await invoke<number[]>('speak', { text, lang })
-      const blob = new Blob([new Uint8Array(wavBytes)], { type: 'audio/wav' })
+      const audioBytes = await invoke<number[]>('speak', { text, lang })
+      const blob = new Blob([new Uint8Array(audioBytes)], { type: 'audio/mpeg' })
       const url = URL.createObjectURL(blob)
       currentAudio = new Audio(url)
       currentAudio.onended = () => { URL.revokeObjectURL(url); currentAudio = null }
@@ -189,10 +189,24 @@ export async function speakText(text: string, lang: string): Promise<void> {
     }
   }
 
-  // Web Speech API — works in both browser and Tauri webview
+  // Web Speech API fallback
   if ('speechSynthesis' in window) {
     speechSynthesis.cancel()
+    // Ensure voices are loaded (async in Chromium/WebView2)
+    let voices = speechSynthesis.getVoices()
+    if (voices.length === 0) {
+      voices = await new Promise<SpeechSynthesisVoice[]>(resolve => {
+        const onVoices = () => { resolve(speechSynthesis.getVoices()) }
+        speechSynthesis.addEventListener('voiceschanged', onVoices, { once: true })
+        setTimeout(() => resolve(speechSynthesis.getVoices()), 500)
+      })
+    }
     const utterance = new SpeechSynthesisUtterance(text)
+    const prefix = lang.split('-')[0]
+    const match = voices.find(v => v.lang.startsWith(prefix))
+    if (match) {
+      utterance.voice = match
+    }
     utterance.lang = lang
     speechSynthesis.speak(utterance)
   }
