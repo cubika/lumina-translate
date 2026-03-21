@@ -57,12 +57,22 @@ export default function DocumentsWorkspace() {
       let text: string
       let pages: string[] | null = null
       if (isPdf) {
-        pages = await extractPdfPages(file)
-        text = pages.join('\n\n')
+        console.log(`[PDF] Extracting text from ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)...`)
+        try {
+          pages = await extractPdfPages(file)
+          text = pages.join('\n\n')
+          console.log(`[PDF] Extracted ${pages.length} pages, ${text.length} chars total`)
+        } catch (e) {
+          console.error('[PDF] Extraction failed:', e)
+          throw e
+        }
       } else {
         text = await file.text()
       }
-      if (!text.trim()) return
+      if (!text.trim()) {
+        console.warn('[DOC] File is empty after extraction')
+        return
+      }
 
       const docId = Date.now()
       const sizeKB = (file.size / 1024).toFixed(1)
@@ -85,9 +95,9 @@ export default function DocumentsWorkspace() {
       setDocs((prev) => [newDoc, ...prev])
 
       try {
-        // Chunk large texts (~3000 chars per chunk ≈ 1000 tokens, safe for any model)
         const MAX_CHUNK_CHARS = 8000
         const needsChunking = text.length > MAX_CHUNK_CHARS
+        console.log(`[DOC] Text length: ${text.length} chars, needsChunking: ${needsChunking}`)
 
         let result: string
 
@@ -106,9 +116,12 @@ export default function DocumentsWorkspace() {
           }
           if (current.trim()) chunks.push(current.trim())
 
+          console.log(`[DOC] Split into ${chunks.length} chunks: ${chunks.map((c, i) => `chunk ${i + 1}: ${c.length} chars`).join(', ')}`)
+
           // Translate each chunk sequentially
           const translated: string[] = []
           for (let i = 0; i < chunks.length; i++) {
+            console.log(`[DOC] Translating chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars)...`)
             // Update progress
             setDocs((prev) =>
               prev.map((d) =>
@@ -125,10 +138,12 @@ export default function DocumentsWorkspace() {
               model: settings.selectedModel,
               providerType: settings.providerType,
             })
+            console.log(`[DOC] Chunk ${i + 1} done, result: ${chunkResult.length} chars`)
             translated.push(chunkResult)
           }
           result = translated.join('\n\n')
         } else {
+          console.log(`[DOC] Single-shot translation (${text.length} chars)...`)
           result = await translate({
             text,
             sourceLang,
@@ -138,16 +153,19 @@ export default function DocumentsWorkspace() {
           })
         }
 
+        console.log(`[DOC] Translation complete, total: ${result.length} chars`)
         setDocs((prev) =>
           prev.map((d) =>
             d.id === docId ? { ...d, status: 'Ready', translatedText: result } : d,
           ),
         )
       } catch (err) {
+        const errMsg = err instanceof Error ? err.message : 'Translation failed'
+        console.error(`[DOC] Translation failed:`, errMsg, err)
         setDocs((prev) =>
           prev.map((d) =>
             d.id === docId
-              ? { ...d, status: 'Failed', error: err instanceof Error ? err.message : 'Translation failed' }
+              ? { ...d, status: 'Failed', error: errMsg }
               : d,
           ),
         )
