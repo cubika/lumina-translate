@@ -174,12 +174,16 @@ export async function speakText(text: string, lang: string): Promise<void> {
 
   // Tauri app — use Edge cloud TTS via Rust backend (WebView2 lacks online voices)
   if (window.__TAURI_INTERNALS__) {
-    const audioBytes = await invoke<number[]>('speak', { text, lang })
-    const blob = new Blob([new Uint8Array(audioBytes)], { type: 'audio/mpeg' })
-    const url = URL.createObjectURL(blob)
-    currentAudio = new Audio(url)
-    currentAudio.onended = () => { URL.revokeObjectURL(url); currentAudio = null }
-    await currentAudio.play()
+    try {
+      const audioBytes = await invoke<number[]>('speak', { text, lang })
+      const blob = new Blob([new Uint8Array(audioBytes)], { type: 'audio/mpeg' })
+      const url = URL.createObjectURL(blob)
+      currentAudio = new Audio(url)
+      currentAudio.onended = () => { URL.revokeObjectURL(url); currentAudio = null }
+      await currentAudio.play()
+    } catch (e) {
+      console.error('TTS failed:', e)
+    }
     return
   }
 
@@ -201,15 +205,9 @@ function extractJSON(text: string): string {
   return text.trim()
 }
 
-export async function testConnection(): Promise<{ ok: boolean; error?: string }> {
+export async function testConnection(model: string, providerType: 'openai' | 'anthropic'): Promise<{ ok: boolean; error?: string }> {
   try {
-    await callAI(
-      [{ role: 'user', content: 'hi' }],
-      loadSettings().selectedModel,
-      loadSettings().providerType,
-      undefined,
-      1,
-    )
+    await callAI([{ role: 'user', content: 'hi' }], model, providerType, undefined, 1)
     return { ok: true }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Connection failed' }

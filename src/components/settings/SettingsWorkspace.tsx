@@ -94,9 +94,7 @@ export default function SettingsWorkspace() {
     }
     setConnectionStatus('testing')
     setConnectionError('')
-    // Small delay to ensure localStorage write completes before reading
-    await new Promise(r => setTimeout(r, 50))
-    const result = await testConnection()
+    const result = await testConnection(selectedModel, providerType)
     setConnectionStatus(result.ok ? 'ok' : 'failed')
     if (!result.ok) setConnectionError(result.error ?? 'Connection failed')
   }

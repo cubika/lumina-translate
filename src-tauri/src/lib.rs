@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use tauri::State;
 
 #[derive(Deserialize)]
 struct AiCallRequest {
@@ -29,7 +30,7 @@ struct AiCallResponse {
     error: Option<String>,
 }
 
-async fn call_openai(req: &AiCallRequest) -> Result<String, String> {
+async fn call_openai(client: &reqwest::Client, req: &AiCallRequest) -> Result<String, String> {
     let base = req.openai_base.as_deref().unwrap_or("https://api.openai.com/v1");
     let key = req.openai_key.as_deref()
         .filter(|k| !k.is_empty())
@@ -48,7 +49,6 @@ async fn call_openai(req: &AiCallRequest) -> Result<String, String> {
         "max_tokens": req.max_tokens.unwrap_or(4096),
     });
 
-    let client = reqwest::Client::new();
     let resp = client
         .post(format!("{}/chat/completions", base))
         .header("Content-Type", "application/json")
@@ -71,7 +71,7 @@ async fn call_openai(req: &AiCallRequest) -> Result<String, String> {
         .ok_or_else(|| "Unexpected OpenAI response format".into())
 }
 
-async fn call_anthropic(req: &AiCallRequest) -> Result<String, String> {
+async fn call_anthropic(client: &reqwest::Client, req: &AiCallRequest) -> Result<String, String> {
     let key = req.anthropic_key.as_deref()
         .filter(|k| !k.is_empty())
         .ok_or("Anthropic API key not configured. Please set it in Settings.")?;
@@ -88,7 +88,6 @@ async fn call_anthropic(req: &AiCallRequest) -> Result<String, String> {
         body["system"] = serde_json::Value::String(sys.clone());
     }
 
-    let client = reqwest::Client::new();
     let resp = client
         .post("https://api.anthropic.com/v1/messages")
         .header("Content-Type", "application/json")
@@ -113,31 +112,31 @@ async fn call_anthropic(req: &AiCallRequest) -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn ai_call(req: AiCallRequest) -> AiCallResponse {
+async fn ai_call(client: State<'_, reqwest::Client>, req: AiCallRequest) -> Result<AiCallResponse, String> {
     let result = if req.provider == "anthropic" {
-        call_anthropic(&req).await
+        call_anthropic(&client, &req).await
     } else {
-        call_openai(&req).await
+        call_openai(&client, &req).await
     };
 
-    match result {
+    Ok(match result {
         Ok(text) => AiCallResponse { ok: true, result: Some(text), error: None },
         Err(e) => AiCallResponse { ok: false, result: None, error: Some(e) },
-    }
+    })
 }
 
-
-/// Edge TTS — same cloud neural voices as Edge browser "Read Aloud"
-/// Microsoft disabled these in WebView2 (cost reasons), so we call the endpoint directly.
+/// Edge TTS — same cloud neural voices as Edge browser "Read Aloud".
+/// Microsoft disabled online voices in WebView2 (cost), so we call the endpoint directly.
 mod edge_tts {
     use futures_util::{SinkExt, StreamExt};
     use sha2::{Sha256, Digest};
+    use tokio::time::{timeout, Duration};
     use tokio_tungstenite::tungstenite::Message;
     use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 
     const TRUSTED_CLIENT_TOKEN: &str = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
     const CHROMIUM_FULL_VERSION: &str = "143.0.3650.75";
-    const CHROMIUM_MAJOR: &str = "143";
+    const TTS_TIMEOUT: Duration = Duration::from_secs(30);
 
     const VOICE_MAP: &[(&str, &str)] = &[
         ("zh", "zh-CN-XiaoxiaoNeural"), ("ja", "ja-JP-NanamiNeural"),
@@ -159,44 +158,39 @@ mod edge_tts {
         VOICE_MAP.iter().find(|(l, _)| *l == prefix).map(|(_, v)| *v).unwrap_or("en-US-JennyNeural")
     }
 
-    /// Generate Sec-MS-GEC token — matches edge-tts Python library algorithm
     fn generate_sec_ms_gec() -> String {
         use std::time::{SystemTime, UNIX_EPOCH};
         let secs = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
-        let win_epoch = secs + 11644473600; // Convert to Windows epoch
-        let rounded = win_epoch - (win_epoch % 300); // Round to 5 minutes
-        let ticks = rounded * 10_000_000; // Convert to 100ns ticks
-        let to_hash = format!("{:.0}{}", ticks as f64, TRUSTED_CLIENT_TOKEN);
-        let hash = Sha256::digest(to_hash.as_bytes());
-        format!("{:X}", hash)
-    }
-
-    fn generate_muid() -> String {
-        uuid::Uuid::new_v4().to_string().replace('-', "").to_uppercase()
+        let win_epoch = secs + 11644473600;
+        let rounded = win_epoch - (win_epoch % 300);
+        let ticks = rounded * 10_000_000;
+        let to_hash = format!("{}{}", ticks, TRUSTED_CLIENT_TOKEN);
+        format!("{:X}", Sha256::digest(to_hash.as_bytes()))
     }
 
     pub async fn synthesize(text: &str, lang: &str) -> Result<Vec<u8>, String> {
         let voice = voice_for_lang(lang);
         let request_id = uuid::Uuid::new_v4().to_string().replace('-', "");
-        let sec_ms_gec = generate_sec_ms_gec();
+        let chromium_major = CHROMIUM_FULL_VERSION.split('.').next().unwrap();
 
         let url = format!(
             "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken={}&Sec-MS-GEC={}&Sec-MS-GEC-Version=1-{}&ConnectionId={}",
-            TRUSTED_CLIENT_TOKEN, sec_ms_gec, CHROMIUM_FULL_VERSION, request_id
+            TRUSTED_CLIENT_TOKEN, generate_sec_ms_gec(), CHROMIUM_FULL_VERSION, request_id
         );
 
-        let mut request = url.into_client_request().map_err(|e| format!("TTS request build failed: {}", e))?;
-        let headers = request.headers_mut();
-        headers.insert("Pragma", "no-cache".parse().unwrap());
-        headers.insert("Cache-Control", "no-cache".parse().unwrap());
-        headers.insert("Origin", "chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold".parse().unwrap());
-        headers.insert("User-Agent", format!(
+        let mut request = url.into_client_request().map_err(|e| format!("TTS request failed: {}", e))?;
+        let h = request.headers_mut();
+        h.insert("Pragma", "no-cache".parse().unwrap());
+        h.insert("Cache-Control", "no-cache".parse().unwrap());
+        h.insert("Origin", "chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold".parse().unwrap());
+        h.insert("User-Agent", format!(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{}.0.0.0 Safari/537.36 Edg/{}.0.0.0",
-            CHROMIUM_MAJOR, CHROMIUM_MAJOR
+            chromium_major, chromium_major
         ).parse().unwrap());
-        headers.insert("Accept-Encoding", "gzip, deflate, br, zstd".parse().unwrap());
-        headers.insert("Accept-Language", "en-US,en;q=0.9".parse().unwrap());
-        headers.insert("Cookie", format!("muid={};", generate_muid()).parse().unwrap());
+        h.insert("Accept-Encoding", "gzip, deflate, br, zstd".parse().unwrap());
+        h.insert("Accept-Language", "en-US,en;q=0.9".parse().unwrap());
+        let muid = uuid::Uuid::new_v4().to_string().replace('-', "").to_uppercase();
+        h.insert("Cookie", format!("muid={};", muid).parse().unwrap());
 
         let (mut ws, _) = tokio_tungstenite::connect_async_tls_with_config(request, None, false, None)
             .await.map_err(|e| format!("TTS connect failed: {}", e))?;
@@ -213,22 +207,25 @@ mod edge_tts {
         );
         ws.send(Message::Text(ssml_msg.into())).await.map_err(|e| format!("TTS send failed: {}", e))?;
 
-        // Collect audio bytes
-        let mut audio = Vec::new();
-        while let Some(msg) = ws.next().await {
-            match msg {
-                Ok(Message::Binary(data)) => {
-                    if let Some(pos) = data.windows(12).position(|w| w == b"Path:audio\r\n") {
-                        audio.extend_from_slice(&data[pos + 12..]);
+        // Collect audio bytes with timeout
+        let audio = timeout(TTS_TIMEOUT, async {
+            let mut buf = Vec::new();
+            while let Some(msg) = ws.next().await {
+                match msg {
+                    Ok(Message::Binary(data)) => {
+                        if let Some(pos) = data.windows(12).position(|w| w == b"Path:audio\r\n") {
+                            buf.extend_from_slice(&data[pos + 12..]);
+                        }
                     }
+                    Ok(Message::Text(t)) => {
+                        if t.contains("Path:turn.end") { break; }
+                    }
+                    Err(_) => break,
+                    _ => {}
                 }
-                Ok(Message::Text(t)) => {
-                    if t.contains("Path:turn.end") { break; }
-                }
-                Err(_) => break,
-                _ => {}
             }
-        }
+            buf
+        }).await.map_err(|_| "TTS request timed out".to_string())?;
 
         if audio.is_empty() {
             return Err("No audio received from TTS service".into());
@@ -245,6 +242,7 @@ async fn speak(text: String, lang: String) -> Result<Vec<u8>, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(reqwest::Client::new())
         .invoke_handler(tauri::generate_handler![ai_call, speak])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
