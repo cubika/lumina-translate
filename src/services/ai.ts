@@ -174,7 +174,7 @@ export async function speakText(text: string, lang: string): Promise<void> {
     currentAudio = null
   }
 
-  // Tauri path — native Windows TTS with full voice support
+  // Tauri path — try native Windows TTS first, fall back to Web Speech API
   if (window.__TAURI_INTERNALS__) {
     try {
       const wavBytes = await invoke<number[]>('speak', { text, lang })
@@ -183,23 +183,17 @@ export async function speakText(text: string, lang: string): Promise<void> {
       currentAudio = new Audio(url)
       currentAudio.onended = () => { URL.revokeObjectURL(url); currentAudio = null }
       await currentAudio.play()
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('No voice installed')) {
-        alert(msg)
-      } else {
-        console.error('Native TTS failed:', err)
-      }
+      return
+    } catch {
+      // No native voice — fall through to Web Speech API
     }
-    return
   }
 
-  // Browser fallback — Web Speech API
+  // Web Speech API — works in both browser and Tauri webview
   if ('speechSynthesis' in window) {
     speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(text)
-    const hasVoice = speechSynthesis.getVoices().some(v => v.lang.startsWith(lang.split('-')[0]))
-    if (hasVoice) utterance.lang = lang
+    utterance.lang = lang
     speechSynthesis.speak(utterance)
   }
 }
