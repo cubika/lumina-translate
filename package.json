@@ -13,6 +13,7 @@
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "package": "tauri build && node -e \"const fs=require('fs');fs.mkdirSync('release',{recursive:true});fs.copyFileSync('src-tauri/target/release/lumina-translate.exe','release/LuminaTranslate.exe');console.log('-> release/LuminaTranslate.exe')\"",
+    "clean": "rm -rf dist release src-tauri/target/release/bundle",
     "preview": "vite preview"
   },
   "dependencies": {
