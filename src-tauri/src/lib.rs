@@ -131,7 +131,11 @@ async fn ai_call(req: AiCallRequest) -> AiCallResponse {
 /// Microsoft disabled these in WebView2 (cost reasons), so we call the endpoint directly.
 mod edge_tts {
     use futures_util::{SinkExt, StreamExt};
+    use sha2::{Sha256, Digest};
     use tokio_tungstenite::{connect_async, tungstenite::Message};
+
+    const TRUSTED_CLIENT_TOKEN: &str = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
+    const CHROMIUM_VERSION: &str = "130.0.2849.68";
 
     const VOICE_MAP: &[(&str, &str)] = &[
         ("zh", "zh-CN-XiaoxiaoNeural"), ("ja", "ja-JP-NanamiNeural"),
@@ -153,13 +157,27 @@ mod edge_tts {
         VOICE_MAP.iter().find(|(l, _)| *l == prefix).map(|(_, v)| *v).unwrap_or("en-US-JennyNeural")
     }
 
+    /// Generate Sec-MS-GEC token (required since late 2024)
+    fn generate_sec_ms_gec() -> String {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let secs = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+        // Convert to Windows file time (100ns intervals since 1601-01-01)
+        let ticks = (secs + 11644473600) * 10_000_000;
+        // Round down to nearest 5 minutes (3 billion ticks)
+        let ticks = ticks - (ticks % 3_000_000_000);
+        let to_hash = format!("{}{}", ticks, TRUSTED_CLIENT_TOKEN);
+        let hash = Sha256::digest(to_hash.as_bytes());
+        format!("{:X}", hash)
+    }
+
     pub async fn synthesize(text: &str, lang: &str) -> Result<Vec<u8>, String> {
         let voice = voice_for_lang(lang);
         let request_id = uuid::Uuid::new_v4().to_string().replace('-', "");
+        let sec_ms_gec = generate_sec_ms_gec();
 
         let url = format!(
-            "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId={}",
-            request_id
+            "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken={}&Sec-MS-GEC={}&Sec-MS-GEC-Version=1-{}&ConnectionId={}",
+            TRUSTED_CLIENT_TOKEN, sec_ms_gec, CHROMIUM_VERSION, request_id
         );
 
         let (mut ws, _) = connect_async(&url).await.map_err(|e| format!("TTS connect failed: {}", e))?;
