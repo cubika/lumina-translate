@@ -95,7 +95,8 @@ export default function DocumentsWorkspace() {
       setDocs((prev) => [newDoc, ...prev])
 
       try {
-        const MAX_CHUNK_CHARS = 8000
+        // ~16K chars per chunk ≈ 4K-5K tokens, safe for all models including Azure Model Router (128K context)
+        const MAX_CHUNK_CHARS = 16000
         const needsChunking = text.length > MAX_CHUNK_CHARS
         console.log(`[DOC] Text length: ${text.length} chars, needsChunking: ${needsChunking}`)
 
@@ -118,19 +119,13 @@ export default function DocumentsWorkspace() {
 
           console.log(`[DOC] Split into ${chunks.length} chunks: ${chunks.map((c, i) => `chunk ${i + 1}: ${c.length} chars`).join(', ')}`)
 
-          // Translate each chunk sequentially
-          const translated: string[] = []
-          for (let i = 0; i < chunks.length; i++) {
-            console.log(`[DOC] Translating chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars)...`)
-            // Update progress
-            setDocs((prev) =>
-              prev.map((d) =>
-                d.id === docId
-                  ? { ...d, translatedText: `Translating chunk ${i + 1}/${chunks.length}...` }
-                  : d,
-              ),
-            )
+          // Translate chunks in parallel with concurrency limit
+          const CONCURRENCY = 5
+          const translated: string[] = new Array(chunks.length).fill('')
+          let completed = 0
 
+          const translateChunk = async (i: number) => {
+            console.log(`[DOC] Translating chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars)...`)
             const chunkResult = await translate({
               text: chunks[i],
               sourceLang,
@@ -138,8 +133,22 @@ export default function DocumentsWorkspace() {
               model: settings.selectedModel,
               providerType: settings.providerType,
             })
-            console.log(`[DOC] Chunk ${i + 1} done, result: ${chunkResult.length} chars`)
-            translated.push(chunkResult)
+            translated[i] = chunkResult
+            completed++
+            console.log(`[DOC] Chunk ${i + 1} done (${completed}/${chunks.length}), result: ${chunkResult.length} chars`)
+            setDocs((prev) =>
+              prev.map((d) =>
+                d.id === docId
+                  ? { ...d, translatedText: `Translated ${completed}/${chunks.length} chunks...` }
+                  : d,
+              ),
+            )
+          }
+
+          // Process in batches of CONCURRENCY
+          for (let i = 0; i < chunks.length; i += CONCURRENCY) {
+            const batch = chunks.slice(i, i + CONCURRENCY).map((_, j) => translateChunk(i + j))
+            await Promise.all(batch)
           }
           result = translated.join('\n\n')
         } else {
