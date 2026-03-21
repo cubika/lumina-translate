@@ -13,14 +13,17 @@ export default function TranslateWorkspace() {
   const [isTranslating, setIsTranslating] = useState(false)
   const [copied, setCopied] = useState(false)
   const [swapRotation, setSwapRotation] = useState(0)
+  const [hoveredSourceIdx, setHoveredSourceIdx] = useState<number | null>(null)
+  const [isEditingSource, setIsEditingSource] = useState(true)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const sourceParas = useMemo(() => splitParagraphs(sourceText), [sourceText])
 
   // Precompute character ranges for each source paragraph (for textarea selection)
   const sourceParaRanges = useMemo(() => {
-    const paras = splitParagraphs(sourceText)
     const ranges: { start: number; end: number }[] = []
     let searchFrom = 0
-    for (const para of paras) {
+    for (const para of sourceParas) {
       const start = sourceText.indexOf(para, searchFrom)
       if (start !== -1) {
         ranges.push({ start, end: start + para.length })
@@ -28,7 +31,16 @@ export default function TranslateWorkspace() {
       }
     }
     return ranges
-  }, [sourceText])
+  }, [sourceText, sourceParas])
+
+  // Switch to view mode when translation completes, edit mode when text changes
+  useEffect(() => {
+    if (translatedText && !isTranslating) setIsEditingSource(false)
+  }, [translatedText, isTranslating])
+
+  const handleSourceHoverIndex = useCallback((idx: number | null) => {
+    setHoveredSourceIdx(idx)
+  }, [])
 
   useEffect(() => {
     const sync = () => {
@@ -169,18 +181,42 @@ export default function TranslateWorkspace() {
             )}
           </div>
           <div className="glass-panel rounded-2xl border border-outline-variant/10 flex-1 flex flex-col min-h-[260px]">
-            <textarea
-              ref={textareaRef}
-              value={sourceText}
-              onChange={handleSourceChange}
-              placeholder={t('translate.placeholder')}
-              className="flex-1 bg-transparent text-on-surface font-body text-[15px] leading-relaxed p-5 resize-none outline-none placeholder:text-on-surface-variant/30 w-full"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                  handleTranslate()
-                }
-              }}
-            />
+            {/* View mode: hoverable paragraphs. Click to edit. */}
+            {!isEditingSource && translatedText && sourceParas.length > 1 ? (
+              <div
+                className="flex-1 p-5 overflow-y-auto min-h-0 scroll-smooth cursor-text"
+                onClick={() => { setIsEditingSource(true); setTimeout(() => textareaRef.current?.focus(), 0) }}
+              >
+                <div className="flex flex-col gap-3">
+                  {sourceParas.map((para, i) => (
+                    <p
+                      key={i}
+                      onMouseEnter={() => handleSourceHoverIndex(i)}
+                      onMouseLeave={() => handleSourceHoverIndex(null)}
+                      className={`text-on-surface font-body text-[15px] leading-relaxed whitespace-pre-wrap rounded-lg px-2 py-1 -mx-2 transition-colors duration-150 ${
+                        hoveredSourceIdx === i ? 'bg-primary-fixed-dim/15 border-l-2 border-primary-fixed-dim/50 pl-3' : 'border-l-2 border-transparent pl-3'
+                      }`}
+                    >
+                      {para}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <textarea
+                ref={textareaRef}
+                value={sourceText}
+                onChange={handleSourceChange}
+                placeholder={t('translate.placeholder')}
+                className="flex-1 bg-transparent text-on-surface font-body text-[15px] leading-relaxed p-5 resize-none outline-none placeholder:text-on-surface-variant/30 w-full"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    handleTranslate()
+                  }
+                }}
+                onBlur={() => { if (translatedText) setIsEditingSource(false) }}
+              />
+            )}
             <div className="flex justify-end px-5 pb-3">
               <span className="text-[11px] font-label text-on-surface-variant/60">
                 {sourceText.length} {t('translate.chars')}
@@ -246,6 +282,7 @@ export default function TranslateWorkspace() {
                   translatedText={translatedText}
                   isTranslating={isTranslating}
                   onHoverIndex={handleHoverIndex}
+                  highlightIndex={hoveredSourceIdx}
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full gap-3 opacity-30">

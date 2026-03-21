@@ -4,6 +4,7 @@ interface TranslationOutputProps {
   translatedText: string
   isTranslating: boolean
   onHoverIndex: (index: number | null) => void
+  highlightIndex: number | null  // highlighted from source-side hover
 }
 
 function splitParagraphs(text: string): string[] {
@@ -14,7 +15,7 @@ function splitParagraphs(text: string): string[] {
 
 export { splitParagraphs }
 
-export default function TranslationOutput({ translatedText, isTranslating, onHoverIndex }: TranslationOutputProps) {
+export default function TranslationOutput({ translatedText, isTranslating, onHoverIndex, highlightIndex }: TranslationOutputProps) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
   const targetParas = useMemo(() => splitParagraphs(translatedText), [translatedText])
 
@@ -40,6 +41,9 @@ export default function TranslationOutput({ translatedText, isTranslating, onHov
     )
   }
 
+  // Active index: either hovered from this side, or highlighted from source-side hover
+  const activeIdx = hoveredIdx ?? highlightIndex
+
   return (
     <div className="flex flex-col gap-3">
       {targetParas.map((para, i) => (
@@ -50,7 +54,7 @@ export default function TranslationOutput({ translatedText, isTranslating, onHov
         >
           <p
             className={`text-on-surface font-body text-[15px] leading-relaxed whitespace-pre-wrap rounded-lg px-2 py-1 -mx-2 transition-colors duration-150 cursor-default ${
-              hoveredIdx === i ? 'bg-secondary-fixed-dim/15 border-l-2 border-secondary-fixed-dim/50 pl-3' : 'border-l-2 border-transparent pl-3'
+              activeIdx === i ? 'bg-secondary-fixed-dim/15 border-l-2 border-secondary-fixed-dim/50 pl-3' : 'border-l-2 border-transparent pl-3'
             }`}
           >
             {para}
