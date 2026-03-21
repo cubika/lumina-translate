@@ -330,22 +330,33 @@ If the text has no issues, return {"corrected": "<original text>", "issues": []}
   }
 }
 
-export async function lookupWord(req: DictionaryRequest): Promise<{
+export interface DictionaryDefinition {
+  text: string
+  register?: string  // "informal", "formal", "technical", "dated", "literary", etc.
+}
+
+export interface DictionaryMeaning {
+  wordClass: string  // "Noun", "Verb", "Adjective", etc.
+  definitions: DictionaryDefinition[]
+}
+
+export interface DictionaryResult {
   word: string
   phonetics: string
-  wordClass: string
-  definition: string
+  meanings: DictionaryMeaning[]
   etymology: string
-  synonyms: string[]
-  antonyms: string[]
-  examples: string[]
   usageNote: string
   frequency: string
   relatedForms: string[]
-}> {
+  synonyms: string[]
+  antonyms: string[]
+  examples: string[]
+}
+
+export async function lookupWord(req: DictionaryRequest): Promise<DictionaryResult> {
   const contextPart = req.context ? `\nContext: "${req.context}"` : ''
   const langNote = req.nativeLang && req.nativeLang !== 'English'
-    ? `\nIMPORTANT: Write "definition", "etymology", and "usageNote" in ${req.nativeLang}. Keep "word", "phonetics", "wordClass", "synonyms", "antonyms", "examples", "relatedForms", and "frequency" in the original language of the word.`
+    ? `\nIMPORTANT: Write definitions, "etymology", and "usageNote" in ${req.nativeLang}. Keep "word", "phonetics", "wordClass", "synonyms", "antonyms", "examples", "relatedForms", "register", and "frequency" in the original language of the word.`
     : ''
   const systemMsg = `You are a multilingual linguistic expert. Analyze the given word or phrase. Detect the input language automatically.${contextPart}${langNote}
 
@@ -353,16 +364,31 @@ Return a JSON object (no markdown fences, no extra text):
 {
   "word": "the word/phrase as given",
   "phonetics": "IPA pronunciation (e.g. /wɜːrd/)",
-  "wordClass": "Noun | Verb | Adjective | Adverb | etc.",
-  "definition": "clear, concise definition",
+  "meanings": [
+    {
+      "wordClass": "Noun",
+      "definitions": [
+        { "text": "primary definition of this word class", "register": "informal" },
+        { "text": "secondary definition if applicable", "register": "technical" }
+      ]
+    },
+    {
+      "wordClass": "Verb",
+      "definitions": [
+        { "text": "definition as verb", "register": "dated" }
+      ]
+    }
+  ],
   "etymology": "origin and historical development of the word",
   "usageNote": "how the word is typically used: formal/informal register, common collocations, nuances, or pitfalls",
   "frequency": "Common | Academic | Literary | Rare | Archaic",
   "relatedForms": ["related word forms, e.g. for 'run': runner (noun), running (gerund), ran (past tense)"],
   "synonyms": ["5-7 synonyms in the same language as the word"],
   "antonyms": ["2-4 antonyms in the same language as the word"],
-  "examples": ["3 natural example sentences using the word IN THE WORD'S ORIGINAL LANGUAGE, showing different contexts and registers"]
-}`
+  "examples": ["4 natural example sentences using the word IN THE WORD'S ORIGINAL LANGUAGE, showing different contexts and registers"]
+}
+
+Include ALL word classes the word can function as (e.g. both noun and verb for "slang"). For each word class, provide the primary definition and any important secondary definitions. Tag each definition with its register (informal, formal, technical, dated, literary, slang, etc.) when applicable.`
 
   const messages = [{ role: 'user', content: `Analyze: ${req.word}` }]
 
@@ -373,8 +399,7 @@ Return a JSON object (no markdown fences, no extra text):
     return {
       word: req.word,
       phonetics: '',
-      wordClass: '',
-      definition: result,
+      meanings: [{ wordClass: '', definitions: [{ text: result }] }],
       etymology: '',
       usageNote: '',
       frequency: '',

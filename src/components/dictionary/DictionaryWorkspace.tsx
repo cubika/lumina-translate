@@ -1,21 +1,8 @@
 import { useState, useCallback } from 'react'
 import { lookupWord, downloadTextFile, speakText } from '../../services/ai'
+import type { DictionaryResult } from '../../services/ai'
 import { loadSettings, langToBcp47 } from '../../services/settings'
 import { useTranslation } from '../../hooks/useTranslation'
-
-interface DictionaryResult {
-  word: string
-  phonetics: string
-  wordClass: string
-  definition: string
-  etymology: string
-  usageNote: string
-  frequency: string
-  relatedForms: string[]
-  synonyms: string[]
-  antonyms: string[]
-  examples: string[]
-}
 
 function highlightWordInText(text: string, word: string) {
   const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -47,9 +34,7 @@ export default function DictionaryWorkspace() {
     const cjkRange = /[\u4e00-\u9fff\u3400-\u4dbf\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]/
     if (cjkRange.test(text)) {
       const cleaned = text.replace(/[.,;:!?，。；：！？、\s]/g, '')
-      // Short CJK input (<=4 chars) is likely a single word/phrase
       if (cleaned.length <= 4) return [cleaned]
-      // Longer input: split into individual characters for token selection
       return Array.from(cleaned).filter(Boolean)
     }
     return text
@@ -129,12 +114,17 @@ export default function DictionaryWorkspace() {
 
   const handleExport = useCallback(() => {
     if (!result) return
+    const meanings = result.meanings.map(m =>
+      `${m.wordClass}:\n${m.definitions.map((d, i) => `  ${i + 1}. ${d.text}${d.register ? ` [${d.register}]` : ''}`).join('\n')}`
+    ).join('\n\n')
     const text = [
       `Word: ${result.word}`,
       `Phonetics: ${result.phonetics}`,
-      `Class: ${result.wordClass}`,
-      `Definition: ${result.definition}`,
+      meanings,
       `Etymology: ${result.etymology}`,
+      `Usage: ${result.usageNote}`,
+      `Frequency: ${result.frequency}`,
+      `Related Forms: ${result.relatedForms.join(', ')}`,
       `Synonyms: ${result.synonyms.join(', ')}`,
       `Antonyms: ${result.antonyms.join(', ')}`,
       `Examples:\n${result.examples.map((ex) => `  - ${ex}`).join('\n')}`,
@@ -244,13 +234,12 @@ export default function DictionaryWorkspace() {
         </div>
       )}
 
-      {/* Bento Grid */}
+      {/* Results */}
       {result && (
         <div className="flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto">
-          {/* Top Row: Definition + Synonyms/Antonyms */}
-          <div className="grid grid-cols-12 gap-4">
-            {/* Main Definition Card */}
-            <div className="col-span-7 liquid-glass rounded-[2rem] ghost-border p-8 flex flex-col gap-5">
+          {/* Header: Word + Phonetics + Frequency */}
+          <div className="liquid-glass rounded-[2rem] ghost-border p-8 flex flex-col gap-5">
+            <div className="flex items-start justify-between">
               <div className="flex flex-col gap-1">
                 <h2 className="text-4xl font-headline font-black tracking-tight text-on-surface">
                   {result.word}
@@ -270,95 +259,129 @@ export default function DictionaryWorkspace() {
                   </button>
                 </div>
               </div>
-
               <div className="flex items-center gap-2">
-                <span className="inline-flex px-3 py-1 rounded-full bg-secondary-fixed-dim/10 text-secondary-fixed-dim text-xs font-label font-semibold uppercase tracking-widest">
-                  {result.wordClass}
-                </span>
+                {/* Word class pills */}
+                {result.meanings.map((m, i) => (
+                  <span key={i} className="px-3 py-1 rounded-full bg-secondary-fixed-dim/10 text-secondary-fixed-dim text-xs font-label font-semibold uppercase tracking-widest">
+                    {m.wordClass}
+                  </span>
+                ))}
                 {result.frequency && (
-                  <span className="inline-flex px-2.5 py-1 rounded-full bg-surface-container-high/60 text-on-surface-variant/60 text-[10px] font-label font-semibold uppercase tracking-widest">
+                  <span className="px-2.5 py-1 rounded-full bg-surface-container-high/60 text-on-surface-variant/60 text-[10px] font-label font-semibold uppercase tracking-widest">
                     {result.frequency}
                   </span>
                 )}
               </div>
+            </div>
 
-              <p className="text-on-surface/80 font-body text-sm leading-relaxed">
-                {result.definition}
-              </p>
-
-              {result.usageNote && (
-                <div className="bg-primary-fixed-dim/5 rounded-xl px-4 py-3">
-                  <p className="text-on-surface-variant/70 text-xs font-body leading-relaxed">
-                    <span className="text-primary-fixed-dim/70 font-semibold">Usage: </span>
-                    {result.usageNote}
-                  </p>
+            {/* Definitions grouped by word class */}
+            <div className="flex flex-col gap-4">
+              {result.meanings.map((meaning, mi) => (
+                <div key={mi}>
+                  {result.meanings.length > 1 && (
+                    <h3 className="text-xs font-label font-bold text-secondary-fixed-dim uppercase tracking-widest mb-2">
+                      {meaning.wordClass}
+                    </h3>
+                  )}
+                  <div className="flex flex-col gap-2">
+                    {meaning.definitions.map((def, di) => (
+                      <div key={di} className="flex gap-3">
+                        {meaning.definitions.length > 1 && (
+                          <span className="text-on-surface-variant/30 text-sm font-label font-semibold mt-0.5 shrink-0">
+                            {di + 1}.
+                          </span>
+                        )}
+                        <div className="flex-1">
+                          <p className="text-on-surface/80 font-body text-sm leading-relaxed">
+                            {def.text}
+                          </p>
+                          {def.register && (
+                            <span className="inline-flex mt-1 px-2 py-0.5 rounded-md bg-surface-container-high/50 text-on-surface-variant/50 text-[10px] font-label font-semibold italic">
+                              {def.register}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              )}
+              ))}
+            </div>
 
-              <div className="border-t border-outline-variant/10 pt-4">
-                <h4 className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/40 font-label font-semibold mb-2">
-                  {t('dictionary.etymology')}
-                </h4>
-                <p className="text-on-surface-variant/70 text-xs font-body leading-relaxed italic">
-                  {result.etymology}
+            {/* Usage Note */}
+            {result.usageNote && (
+              <div className="bg-primary-fixed-dim/5 rounded-xl px-4 py-3">
+                <p className="text-on-surface-variant/70 text-xs font-body leading-relaxed">
+                  <span className="text-primary-fixed-dim/70 font-semibold">Note: </span>
+                  {result.usageNote}
                 </p>
+              </div>
+            )}
+
+            {/* Etymology */}
+            <div className="border-t border-outline-variant/10 pt-4">
+              <h4 className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/40 font-label font-semibold mb-2">
+                {t('dictionary.etymology')}
+              </h4>
+              <p className="text-on-surface-variant/70 text-xs font-body leading-relaxed italic">
+                {result.etymology}
+              </p>
+            </div>
+          </div>
+
+          {/* Synonyms & Antonyms row */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Synonyms */}
+            <div className="liquid-glass rounded-[2rem] ghost-border p-6 flex flex-col gap-4">
+              <h3 className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/50 font-label font-semibold flex items-center gap-2">
+                <span className="material-symbols-outlined text-base text-primary-fixed-dim/60">
+                  link
+                </span>
+                {t('dictionary.synonyms')}
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {result.synonyms.length > 0 ? (
+                  result.synonyms.map((syn, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleRecentClick(syn)}
+                      className="px-3 py-1.5 rounded-full bg-primary-fixed-dim/8 hover:bg-primary-fixed-dim/15 text-primary-fixed-dim text-xs font-label font-medium transition-all duration-200 cursor-pointer hover:scale-105"
+                    >
+                      {syn}
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-on-surface-variant/30 text-xs font-body">
+                    {t('dictionary.noSynonyms')}
+                  </p>
+                )}
               </div>
             </div>
 
-            {/* Synonyms & Antonyms - stacked */}
-            <div className="col-span-5 flex flex-col gap-4">
-              {/* Synonyms */}
-              <div className="liquid-glass rounded-[2rem] ghost-border p-6 flex flex-col gap-4 flex-1">
-                <h3 className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/50 font-label font-semibold flex items-center gap-2">
-                  <span className="material-symbols-outlined text-base text-primary-fixed-dim/60">
-                    link
-                  </span>
-                  {t('dictionary.synonyms')}
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {result.synonyms.length > 0 ? (
-                    result.synonyms.map((syn, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handleRecentClick(syn)}
-                        className="px-3 py-1.5 rounded-full bg-primary-fixed-dim/8 hover:bg-primary-fixed-dim/15 text-primary-fixed-dim text-xs font-label font-medium transition-all duration-200 cursor-pointer hover:scale-105"
-                      >
-                        {syn}
-                      </button>
-                    ))
-                  ) : (
-                    <p className="text-on-surface-variant/30 text-xs font-body">
-                      {t('dictionary.noSynonyms')}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Antonyms */}
-              <div className="liquid-glass rounded-[2rem] ghost-border p-6 flex flex-col gap-4 flex-1">
-                <h3 className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/50 font-label font-semibold flex items-center gap-2">
-                  <span className="material-symbols-outlined text-base text-secondary-fixed-dim/60">
-                    swap_horiz
-                  </span>
-                  {t('dictionary.antonyms')}
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {result.antonyms.length > 0 ? (
-                    result.antonyms.map((ant, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handleRecentClick(ant)}
-                        className="px-3 py-1.5 rounded-full bg-secondary-fixed-dim/8 hover:bg-secondary-fixed-dim/15 text-secondary-fixed-dim text-xs font-label font-medium transition-all duration-200 cursor-pointer hover:scale-105"
-                      >
-                        {ant}
-                      </button>
-                    ))
-                  ) : (
-                    <p className="text-on-surface-variant/30 text-xs font-body">
-                      {t('dictionary.noAntonyms')}
-                    </p>
-                  )}
-                </div>
+            {/* Antonyms */}
+            <div className="liquid-glass rounded-[2rem] ghost-border p-6 flex flex-col gap-4">
+              <h3 className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/50 font-label font-semibold flex items-center gap-2">
+                <span className="material-symbols-outlined text-base text-secondary-fixed-dim/60">
+                  swap_horiz
+                </span>
+                {t('dictionary.antonyms')}
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {result.antonyms.length > 0 ? (
+                  result.antonyms.map((ant, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleRecentClick(ant)}
+                      className="px-3 py-1.5 rounded-full bg-secondary-fixed-dim/8 hover:bg-secondary-fixed-dim/15 text-secondary-fixed-dim text-xs font-label font-medium transition-all duration-200 cursor-pointer hover:scale-105"
+                    >
+                      {ant}
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-on-surface-variant/30 text-xs font-body">
+                    {t('dictionary.noAntonyms')}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -385,7 +408,7 @@ export default function DictionaryWorkspace() {
             </div>
           )}
 
-          {/* Context Usage - full width */}
+          {/* Examples */}
           {result.examples.length > 0 && (
             <div className="liquid-glass rounded-[2rem] ghost-border p-6 flex flex-col gap-4">
               <h3 className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/50 font-label font-semibold flex items-center gap-2">
@@ -394,13 +417,11 @@ export default function DictionaryWorkspace() {
                 </span>
                 {t('dictionary.contextUsage')}
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="flex flex-col gap-2">
                 {result.examples.map((example, i) => (
-                  <div key={i} className="rounded-2xl p-4">
-                    <p className="text-on-surface/70 text-sm font-body leading-relaxed">
-                      {highlightWordInText(example, result.word)}
-                    </p>
-                  </div>
+                  <p key={i} className="text-on-surface/70 text-sm font-body leading-relaxed pl-4">
+                    {highlightWordInText(example, result.word)}
+                  </p>
                 ))}
               </div>
             </div>
@@ -412,7 +433,6 @@ export default function DictionaryWorkspace() {
       {(recentWords.length > 0 || result) && (
         <div className="flex-shrink-0 border-t border-outline-variant/10 pt-4 pb-2">
           <div className="flex items-center justify-between">
-            {/* Recently Viewed */}
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <span className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/40 font-label font-semibold whitespace-nowrap">
                 {t('dictionary.recent')}
@@ -430,7 +450,6 @@ export default function DictionaryWorkspace() {
               </div>
             </div>
 
-            {/* Export Button */}
             {result && (
               <button
                 onClick={handleExport}
