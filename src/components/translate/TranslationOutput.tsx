@@ -7,12 +7,12 @@ interface TranslationOutputProps {
   isTranslating: boolean
 }
 
-/** Split text into paragraphs by double or single newlines, preserving structure */
+/** Split text into paragraphs, normalizing different newline patterns */
 function splitParagraphs(text: string): string[] {
-  // Split on double newlines first (markdown paragraphs), fall back to single
-  const paras = text.split(/\n{2,}/)
-  if (paras.length > 1) return paras.filter(Boolean)
-  // Single newline split for line-by-line content
+  // Split on double newlines (standard markdown paragraph breaks)
+  const paras = text.split(/\n{2,}/).filter(Boolean)
+  if (paras.length > 1) return paras
+  // Fallback: single newline split for line-by-line content
   return text.split(/\n/).filter(Boolean)
 }
 
@@ -21,6 +21,11 @@ export default function TranslationOutput({ translatedText, sourceText, isTransl
 
   const targetParas = useMemo(() => splitParagraphs(translatedText), [translatedText])
   const sourceParas = useMemo(() => splitParagraphs(sourceText), [sourceText])
+
+  // Direct 1:1 mapping — works when AI preserves paragraph structure
+  const alignedSource = hoveredIdx !== null && hoveredIdx < sourceParas.length
+    ? sourceParas[hoveredIdx]
+    : null
 
   // During streaming or if only one paragraph, render as single markdown block
   if (isTranslating || targetParas.length <= 1) {
@@ -34,45 +39,41 @@ export default function TranslationOutput({ translatedText, sourceText, isTransl
     )
   }
 
-  // Paragraph-aligned view with hover
+  // Paragraph-aligned view with hover + sticky bottom bar
   return (
-    <div className="prose-output flex flex-col gap-3">
-      {targetParas.map((para, i) => {
-        const hasSource = i < sourceParas.length
-        return (
+    <div className="prose-output flex flex-col gap-3 pb-2">
+      {targetParas.map((para, i) => (
+        <div
+          key={i}
+          onMouseEnter={() => setHoveredIdx(i)}
+          onMouseLeave={() => setHoveredIdx(null)}
+        >
           <div
-            key={i}
-            className="group relative"
-            onMouseEnter={() => hasSource && setHoveredIdx(i)}
-            onMouseLeave={() => setHoveredIdx(null)}
+            className={`rounded-lg px-2 py-1 -mx-2 transition-colors duration-150 ${
+              hoveredIdx === i ? 'bg-primary-fixed-dim/8' : ''
+            }`}
           >
-            <div
-              className={`rounded-lg px-2 py-1 -mx-2 transition-colors duration-150 ${
-                hoveredIdx === i ? 'bg-primary-fixed-dim/8' : ''
-              }`}
-            >
-              <ReactMarkdown>{para}</ReactMarkdown>
-            </div>
-
-            {/* Original text tooltip */}
-            {hoveredIdx === i && hasSource && (
-              <div className="absolute left-0 right-0 bottom-full mb-2 z-50 pointer-events-none">
-                <div className="glass-panel rounded-xl border border-outline-variant/20 px-4 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.5)] max-h-40 overflow-y-auto">
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <span className="material-symbols-outlined text-xs text-on-surface-variant/50">source</span>
-                    <span className="text-[10px] uppercase tracking-widest text-on-surface-variant/50 font-label font-semibold">
-                      Original
-                    </span>
-                  </div>
-                  <p className="text-on-surface/70 text-sm font-body leading-relaxed whitespace-pre-wrap">
-                    {sourceParas[i]}
-                  </p>
-                </div>
-              </div>
-            )}
+            <ReactMarkdown>{para}</ReactMarkdown>
           </div>
-        )
-      })}
+        </div>
+      ))}
+
+      {/* Sticky original-text bar at bottom of output panel */}
+      {alignedSource !== null && (
+        <div className="sticky bottom-0 left-0 right-0 mt-2 z-10">
+          <div className="glass-panel rounded-xl border border-outline-variant/20 px-4 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="material-symbols-outlined text-xs text-on-surface-variant/50">source</span>
+              <span className="text-[10px] uppercase tracking-widest text-on-surface-variant/50 font-label font-semibold">
+                Original
+              </span>
+            </div>
+            <p className="text-on-surface/70 text-sm font-body leading-relaxed whitespace-pre-wrap max-h-28 overflow-y-auto">
+              {alignedSource}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
