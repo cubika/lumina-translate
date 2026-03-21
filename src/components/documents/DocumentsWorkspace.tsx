@@ -216,7 +216,9 @@ export default function DocumentsWorkspace() {
   )
 
   const handleDownload = useCallback((doc: TranslatedDoc) => {
-    const ext = doc.name.lastIndexOf('.') >= 0 ? doc.name.slice(doc.name.lastIndexOf('.')) : '.txt'
+    const origExt = doc.name.lastIndexOf('.') >= 0 ? doc.name.slice(doc.name.lastIndexOf('.')) : '.txt'
+    // PDF output is plain text, so use .txt extension
+    const ext = origExt.toLowerCase() === '.pdf' ? '.txt' : origExt
     const baseName = doc.name.replace(/\.[^.]+$/, '')
     downloadTextFile(doc.translatedText, `${baseName}_${doc.to}${ext}`)
   }, [])

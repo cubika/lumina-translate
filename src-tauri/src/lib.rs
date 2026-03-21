@@ -53,7 +53,7 @@ async fn call_openai(client: &reqwest::Client, req: &AiCallRequest) -> Result<St
         .post(format!("{}/chat/completions", base))
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {}", key))
-        .timeout(std::time::Duration::from_secs(120))
+        .timeout(std::time::Duration::from_secs(300))
         .json(&body)
         .send()
         .await
@@ -100,7 +100,7 @@ async fn call_anthropic(client: &reqwest::Client, req: &AiCallRequest) -> Result
         .header("Content-Type", "application/json")
         .header("x-api-key", key)
         .header("anthropic-version", "2023-06-01")
-        .timeout(std::time::Duration::from_secs(120))
+        .timeout(std::time::Duration::from_secs(300))
         .json(&body)
         .send()
         .await
@@ -149,7 +149,7 @@ async fn stream_openai(app: &AppHandle, client: &reqwest::Client, req: &AiCallRe
         .post(format!("{}/chat/completions", base))
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {}", key))
-        .timeout(std::time::Duration::from_secs(120))
+        .timeout(std::time::Duration::from_secs(300))
         .json(&body)
         .send()
         .await
@@ -219,7 +219,7 @@ async fn stream_anthropic(app: &AppHandle, client: &reqwest::Client, req: &AiCal
         .header("Content-Type", "application/json")
         .header("x-api-key", key)
         .header("anthropic-version", "2023-06-01")
-        .timeout(std::time::Duration::from_secs(120))
+        .timeout(std::time::Duration::from_secs(300))
         .json(&body)
         .send()
         .await
