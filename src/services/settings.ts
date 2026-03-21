@@ -6,6 +6,9 @@ export interface AppSettings {
   anthropicApiKey: string
   sourceLang: string
   targetLang: string
+  translationTone: 'standard' | 'formal' | 'casual' | 'academic' | 'creative'
+  simplicity: 'default' | 'simplified' | 'advanced'
+  proofreadMode: 'grammar' | 'readability' | 'style'
 }
 
 const STORAGE_KEY = 'lumina-settings'
@@ -18,6 +21,9 @@ export const defaultSettings: AppSettings = {
   anthropicApiKey: '',
   sourceLang: 'English',
   targetLang: 'Chinese',
+  translationTone: 'standard',
+  simplicity: 'default',
+  proofreadMode: 'grammar',
 }
 
 export function loadSettings(): AppSettings {

@@ -61,6 +61,9 @@ export default function SettingsWorkspace() {
   const [openaiBaseUrl, setOpenaiBaseUrl] = useState(settings.openaiBaseUrl)
   const [anthropicApiKey, setAnthropicApiKey] = useState(settings.anthropicApiKey)
   const [targetLang, setTargetLang] = useState(settings.targetLang)
+  const [translationTone, setTranslationTone] = useState(settings.translationTone)
+  const [simplicity, setSimplicity] = useState(settings.simplicity)
+  const [proofreadMode, setProofreadMode] = useState(settings.proofreadMode)
 
   const [showOpenaiKey, setShowOpenaiKey] = useState(false)
   const [showAnthropicKey, setShowAnthropicKey] = useState(false)
@@ -81,6 +84,9 @@ export default function SettingsWorkspace() {
       openaiBaseUrl,
       anthropicApiKey,
       targetLang,
+      translationTone,
+      simplicity,
+      proofreadMode,
     })
     setShowSaveToast(true)
     setTimeout(() => setShowSaveToast(false), 3000)
@@ -106,6 +112,9 @@ export default function SettingsWorkspace() {
     setOpenaiBaseUrl(defaultSettings.openaiBaseUrl)
     setAnthropicApiKey(defaultSettings.anthropicApiKey)
     setTargetLang(defaultSettings.targetLang)
+    setTranslationTone(defaultSettings.translationTone)
+    setSimplicity(defaultSettings.simplicity)
+    setProofreadMode(defaultSettings.proofreadMode)
     setConnectionStatus('untested')
     updateSettings(defaultSettings)
   }
@@ -148,6 +157,125 @@ export default function SettingsWorkspace() {
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Translation Style */}
+          <div className="bg-surface-container-low rounded-[24px] border border-outline-variant/15 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="material-symbols-outlined text-primary-fixed-dim text-2xl">
+                tune
+              </span>
+              <div>
+                <h2 className="text-lg font-headline font-bold text-on-surface">{t('settings.translationStyle')}</h2>
+                <p className="text-xs text-on-surface-variant/50">
+                  {t('settings.translationStyleDesc')}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              {/* Tone */}
+              <div>
+                <label className="block text-xs font-label font-semibold text-on-surface-variant mb-2 tracking-wide">
+                  {t('settings.tone')}
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    ['standard', t('settings.toneStandard')],
+                    ['formal', t('settings.toneFormal')],
+                    ['casual', t('settings.toneCasual')],
+                    ['academic', t('settings.toneAcademic')],
+                    ['creative', t('settings.toneCreative')],
+                  ] as const).map(([value, label]) => (
+                    <button
+                      key={value}
+                      onClick={() => setTranslationTone(value)}
+                      className={`px-4 py-2 rounded-xl text-sm font-label font-semibold transition-all duration-150 cursor-pointer ${
+                        translationTone === value
+                          ? 'bg-primary-fixed-dim/10 border border-primary-fixed-dim/40 text-primary-fixed-dim'
+                          : 'border border-transparent hover:bg-surface-container-high/50 text-on-surface'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Simplicity */}
+              <div>
+                <label className="block text-xs font-label font-semibold text-on-surface-variant mb-2 tracking-wide">
+                  {t('settings.simplicity')}
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    ['default', t('settings.simplicityDefault')],
+                    ['simplified', t('settings.simplicitySimplified')],
+                    ['advanced', t('settings.simplicityAdvanced')],
+                  ] as const).map(([value, label]) => (
+                    <button
+                      key={value}
+                      onClick={() => setSimplicity(value)}
+                      className={`px-4 py-2 rounded-xl text-sm font-label font-semibold transition-all duration-150 cursor-pointer ${
+                        simplicity === value
+                          ? 'bg-primary-fixed-dim/10 border border-primary-fixed-dim/40 text-primary-fixed-dim'
+                          : 'border border-transparent hover:bg-surface-container-high/50 text-on-surface'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Proofread Mode */}
+          <div className="bg-surface-container-low rounded-[24px] border border-outline-variant/15 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="material-symbols-outlined text-primary-fixed-dim text-2xl">
+                spellcheck
+              </span>
+              <div>
+                <h2 className="text-lg font-headline font-bold text-on-surface">{t('settings.proofreadMode')}</h2>
+                <p className="text-xs text-on-surface-variant/50">
+                  {t('settings.proofreadModeDesc')}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              {([
+                ['grammar', t('settings.proofreadGrammar'), t('settings.proofreadGrammarDesc')],
+                ['readability', t('settings.proofreadReadability'), t('settings.proofreadReadabilityDesc')],
+                ['style', t('settings.proofreadStyle'), t('settings.proofreadStyleDesc')],
+              ] as const).map(([value, label, desc]) => (
+                <button
+                  key={value}
+                  onClick={() => setProofreadMode(value)}
+                  className={`flex items-start gap-3 px-4 py-3 rounded-xl transition-all duration-150 cursor-pointer text-left ${
+                    proofreadMode === value
+                      ? 'bg-primary-fixed-dim/10 border border-primary-fixed-dim/40'
+                      : 'border border-transparent hover:bg-surface-container-high/50'
+                  }`}
+                >
+                  <div
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
+                      proofreadMode === value ? 'border-primary-fixed-dim' : 'border-outline-variant/40'
+                    }`}
+                  >
+                    {proofreadMode === value && <div className="w-2.5 h-2.5 rounded-full bg-primary-fixed-dim" />}
+                  </div>
+                  <div>
+                    <span className={`text-sm font-headline font-semibold ${
+                      proofreadMode === value ? 'text-primary-fixed-dim' : 'text-on-surface'
+                    }`}>
+                      {label}
+                    </span>
+                    <p className="text-xs text-on-surface-variant/50 mt-0.5">{desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* AI Engine Panel — stacked sections with flex-wrap grids */}

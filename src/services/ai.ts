@@ -255,8 +255,24 @@ export async function testConnection(model: string, providerType: 'openai' | 'an
   }
 }
 
-const TRANSLATE_SYSTEM = (sourceLang: string, targetLang: string) =>
-  `You are a master translator fluent in ${sourceLang} and ${targetLang}. Follow these three principles:
+const TRANSLATE_SYSTEM = (sourceLang: string, targetLang: string) => {
+  const settings = loadSettings()
+  const toneInstructions: Record<string, string> = {
+    standard: '',
+    formal: '\n- Use formal, professional language. Avoid colloquialisms and slang.',
+    casual: '\n- Use casual, conversational language. Be natural and relaxed.',
+    academic: '\n- Use academic, scholarly language. Employ precise terminology and formal structure.',
+    creative: '\n- Use creative, literary language. Be expressive and elegant.',
+  }
+  const simplicityInstructions: Record<string, string> = {
+    default: '',
+    simplified: '\n- Use simple vocabulary and short sentences. Suitable for language learners.',
+    advanced: '\n- Use sophisticated vocabulary and complex sentence structures.',
+  }
+  const tone = toneInstructions[settings.translationTone] || ''
+  const simplicity = simplicityInstructions[settings.simplicity] || ''
+
+  return `You are a master translator fluent in ${sourceLang} and ${targetLang}. Follow these three principles:
 
 1. Faithful: Accurately convey the original meaning — no additions, omissions, or distortions
 2. Expressive: Write naturally in ${targetLang} — the translation should read as if originally written in ${targetLang}, not as a word-for-word rendering. Use idiomatic expressions and natural sentence structures of ${targetLang}
@@ -267,7 +283,8 @@ Additional rules:
 - Preserve the EXACT paragraph structure: keep the same number of paragraphs and line breaks as the source
 - For technical terms with no standard translation, keep the original in parentheses
 - For proper nouns (names, brands, places), keep as-is unless a widely accepted translation exists
-- Output ONLY the translated text, no explanations or commentary`
+- Output ONLY the translated text, no explanations or commentary${tone}${simplicity}`
+}
 
 export async function translate(req: TranslationRequest): Promise<string> {
   const systemMsg = TRANSLATE_SYSTEM(req.sourceLang, req.targetLang)
@@ -298,17 +315,42 @@ export async function proofread(req: ProofreadRequest): Promise<{
   corrected: string
   issues: { type: string; severity: string; original: string; suggestion: string; explanation: string }[]
 }> {
-  const systemMsg = `You are a professional proofreader and editor. Detect the language automatically and proofread in that language. Analyze for:
+  const settings = loadSettings()
+  const mode = settings.proofreadMode
+
+  const modeInstructions: Record<string, string> = {
+    grammar: `You are a grammar checker. Detect the language automatically. ONLY fix:
 - Grammar errors (subject-verb agreement, tense, articles, prepositions)
 - Spelling and typos
-- Tone and style (awkward phrasing, wordiness, passive voice, clarity)
+- Punctuation errors
+Do NOT change style, tone, word choice, or sentence structure. Keep the author's voice intact.`,
+
+    readability: `You are a professional editor. Detect the language automatically. Fix grammar/spelling AND improve readability:
+- Grammar errors, spelling, and typos
+- Awkward phrasing → clearer alternatives
+- Wordiness → concise rewrites
+- Passive voice → active voice where appropriate
+- Sentence flow and paragraph transitions
+Preserve the author's intent and key points, but make the text clearer and easier to read.`,
+
+    style: `You are a senior editor and writing coach. Detect the language automatically. Thoroughly revise the text:
+- Fix all grammar, spelling, and punctuation
+- Improve clarity, flow, and readability
+- Elevate word choice and sentence variety
+- Strengthen transitions and paragraph structure
+- Polish tone for the intended audience (infer from context)
+- Remove redundancy, filler words, and weak constructions
+The result should read as professionally edited content while preserving the author's core message.`,
+  }
+
+  const systemMsg = `${modeInstructions[mode] || modeInstructions.grammar}
 
 Return a JSON object (no markdown fences, no extra text):
 {
   "corrected": "the full corrected text preserving original formatting",
   "issues": [
     {
-      "type": "Grammar Fix" | "Spelling" | "Tone & Style",
+      "type": "Grammar Fix" | "Spelling" | "Readability" | "Style" | "Tone & Style",
       "severity": "Critical" | "Optimal" | "Minor",
       "original": "the exact problematic text",
       "suggestion": "the corrected text",
