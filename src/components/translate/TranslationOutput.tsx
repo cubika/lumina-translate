@@ -1,33 +1,35 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 
 interface TranslationOutputProps {
   translatedText: string
   sourceText: string
   isTranslating: boolean
+  onHoverIndex: (index: number | null) => void
 }
 
-/** Split text into paragraphs, normalizing different newline patterns */
 function splitParagraphs(text: string): string[] {
-  // Split on double newlines (standard markdown paragraph breaks)
   const paras = text.split(/\n{2,}/).filter(Boolean)
   if (paras.length > 1) return paras
-  // Fallback: single newline split for line-by-line content
   return text.split(/\n/).filter(Boolean)
 }
 
-export default function TranslationOutput({ translatedText, sourceText, isTranslating }: TranslationOutputProps) {
+export { splitParagraphs }
+
+export default function TranslationOutput({ translatedText, sourceText, isTranslating, onHoverIndex }: TranslationOutputProps) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
-
   const targetParas = useMemo(() => splitParagraphs(translatedText), [translatedText])
-  const sourceParas = useMemo(() => splitParagraphs(sourceText), [sourceText])
 
-  // Direct 1:1 mapping — works when AI preserves paragraph structure
-  const alignedSource = hoveredIdx !== null && hoveredIdx < sourceParas.length
-    ? sourceParas[hoveredIdx]
-    : null
+  const handleEnter = useCallback((i: number) => {
+    setHoveredIdx(i)
+    onHoverIndex(i)
+  }, [onHoverIndex])
 
-  // During streaming or if only one paragraph, render as single markdown block
+  const handleLeave = useCallback(() => {
+    setHoveredIdx(null)
+    onHoverIndex(null)
+  }, [onHoverIndex])
+
   if (isTranslating || targetParas.length <= 1) {
     return (
       <div className="prose-output">
@@ -39,14 +41,13 @@ export default function TranslationOutput({ translatedText, sourceText, isTransl
     )
   }
 
-  // Paragraph-aligned view with hover + sticky bottom bar
   return (
-    <div className="prose-output flex flex-col gap-3 pb-2">
+    <div className="prose-output flex flex-col gap-3">
       {targetParas.map((para, i) => (
         <div
           key={i}
-          onMouseEnter={() => setHoveredIdx(i)}
-          onMouseLeave={() => setHoveredIdx(null)}
+          onMouseEnter={() => handleEnter(i)}
+          onMouseLeave={handleLeave}
         >
           <div
             className={`rounded-lg px-2 py-1 -mx-2 transition-colors duration-150 ${
@@ -57,23 +58,6 @@ export default function TranslationOutput({ translatedText, sourceText, isTransl
           </div>
         </div>
       ))}
-
-      {/* Sticky original-text bar at bottom of output panel */}
-      {alignedSource !== null && (
-        <div className="sticky bottom-0 left-0 right-0 mt-2 z-10">
-          <div className="glass-panel rounded-xl border border-outline-variant/20 px-4 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <span className="material-symbols-outlined text-xs text-on-surface-variant/50">source</span>
-              <span className="text-[10px] uppercase tracking-widest text-on-surface-variant/50 font-label font-semibold">
-                Original
-              </span>
-            </div>
-            <p className="text-on-surface/70 text-sm font-body leading-relaxed whitespace-pre-wrap max-h-28 overflow-y-auto">
-              {alignedSource}
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
