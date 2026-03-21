@@ -19,7 +19,8 @@
         "minHeight": 700,
         "decorations": true,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "theme": "Dark"
       }
     ],
     "security": {

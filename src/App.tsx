@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import Sidebar from './components/layout/Sidebar'
 import TopBar from './components/layout/TopBar'
 import ErrorBoundary from './components/ui/ErrorBoundary'
@@ -24,6 +25,11 @@ export default function App() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F11') {
+        e.preventDefault()
+        const appWindow = getCurrentWebviewWindow()
+        appWindow.isFullscreen().then(full => appWindow.setFullscreen(!full))
+      }
       if (e.ctrlKey || e.metaKey) {
         const workspaces: WorkspaceId[] = ['translate', 'proofread', 'dictionary', 'documents', 'settings']
         const num = parseInt(e.key)
