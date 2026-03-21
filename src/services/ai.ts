@@ -183,8 +183,13 @@ export async function speakText(text: string, lang: string): Promise<void> {
       currentAudio = new Audio(url)
       currentAudio.onended = () => { URL.revokeObjectURL(url); currentAudio = null }
       await currentAudio.play()
-    } catch (err) {
-      console.error('Native TTS failed:', err)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (msg.includes('No voice installed')) {
+        alert(msg)
+      } else {
+        console.error('Native TTS failed:', err)
+      }
     }
     return
   }

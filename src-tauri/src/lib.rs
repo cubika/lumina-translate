@@ -135,16 +135,22 @@ mod tts {
         let synth = SpeechSynthesizer::new().map_err(|e| format!("TTS init failed: {}", e))?;
 
         // Try to find a voice matching the requested language
+        let lang_prefix = lang.split('-').next().unwrap_or("");
         let voices = SpeechSynthesizer::AllVoices().map_err(|e| format!("Get voices failed: {}", e))?;
+        let mut found_voice = false;
         for i in 0..voices.Size().unwrap_or(0) {
             if let Ok(voice) = voices.GetAt(i) {
                 if let Ok(voice_lang) = voice.Language() {
-                    if voice_lang.to_string().starts_with(lang.split('-').next().unwrap_or("")) {
+                    if voice_lang.to_string().starts_with(lang_prefix) {
                         let _ = synth.SetVoice(&voice);
+                        found_voice = true;
                         break;
                     }
                 }
             }
+        }
+        if !found_voice && lang_prefix != "en" {
+            return Err(format!("No voice installed for '{}'. Install the language pack in Windows Settings → Time & Language.", lang));
         }
 
         let stream = synth
