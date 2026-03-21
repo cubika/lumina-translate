@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { lookupWord, downloadTextFile, speakText } from '../../services/ai'
-import { loadSettings } from '../../services/settings'
+import { loadSettings, langToBcp47 } from '../../services/settings'
 import { useTranslation } from '../../hooks/useTranslation'
 
 interface DictionaryResult {
@@ -38,6 +38,7 @@ export default function DictionaryWorkspace() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [recentWords, setRecentWords] = useState<string[]>([])
+  const [pronounceLang, setPronounceLang] = useState('en')
 
   const tokenize = useCallback((text: string): string[] => {
     const cjkRange = /[\u4e00-\u9fff\u3400-\u4dbf\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]/
@@ -68,6 +69,7 @@ export default function DictionaryWorkspace() {
           providerType: settings.providerType,
         })
         setResult(data)
+        setPronounceLang(langToBcp47(settings.sourceLang))
         setRecentWords((prev) => {
           const filtered = prev.filter((w) => w.toLowerCase() !== word.toLowerCase())
           return [word, ...filtered].slice(0, 12)
@@ -104,11 +106,12 @@ export default function DictionaryWorkspace() {
 
   const handleTokenClick = useCallback(
     (word: string) => {
+      if (loading) return
       setSelectedToken(word)
       const context = tokens.length > 1 ? tokens.join(' ') : undefined
       lookupSelectedWord(word, context)
     },
-    [tokens, lookupSelectedWord],
+    [tokens, lookupSelectedWord, loading],
   )
 
   const handleRecentClick = useCallback(
@@ -183,7 +186,8 @@ export default function DictionaryWorkspace() {
               <button
                 key={`${token}-${i}`}
                 onClick={() => handleTokenClick(token)}
-                className={`px-4 py-2 rounded-full text-sm font-label font-medium transition-all duration-300 cursor-pointer ${
+                disabled={loading}
+                className={`px-4 py-2 rounded-full text-sm font-label font-medium transition-all duration-300 ${loading ? 'cursor-wait' : 'cursor-pointer'} ${
                   selectedToken === token
                     ? 'bg-gradient-to-r from-primary-fixed-dim/30 to-secondary-fixed-dim/20 text-primary-fixed-dim shadow-lg shadow-primary-fixed-dim/10 scale-105'
                     : 'bg-surface-container-high/50 text-on-surface-variant hover:bg-surface-container-highest/60 hover:text-on-surface'
@@ -253,7 +257,7 @@ export default function DictionaryWorkspace() {
                     {result.phonetics}
                   </span>
                   <button
-                    onClick={() => speakText(result.word, 'en')}
+                    onClick={() => speakText(result.word, pronounceLang)}
                     className="w-8 h-8 rounded-full bg-primary-fixed-dim/10 hover:bg-primary-fixed-dim/20 flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer"
                     title={t('dictionary.pronounce')}
                   >

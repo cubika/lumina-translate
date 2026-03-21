@@ -239,6 +239,14 @@ export default function SettingsWorkspace() {
                   <div>
                     <label className="block text-xs font-label font-semibold text-on-surface-variant mb-2 tracking-wide">
                       {t('settings.openaiKey')}
+                      <a
+                        href="https://platform.openai.com/api-keys"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-2 text-primary-fixed-dim/60 hover:text-primary-fixed-dim font-normal transition-colors"
+                      >
+                        {t('settings.getKey')} ↗
+                      </a>
                     </label>
                     <div className="relative">
                       <input
@@ -279,6 +287,14 @@ export default function SettingsWorkspace() {
                 <div>
                   <label className="block text-xs font-label font-semibold text-on-surface-variant mb-2 tracking-wide">
                     {t('settings.anthropicKey')}
+                    <a
+                      href="https://console.anthropic.com/settings/keys"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-2 text-primary-fixed-dim/60 hover:text-primary-fixed-dim font-normal transition-colors"
+                    >
+                      {t('settings.getKey')} ↗
+                    </a>
                   </label>
                   <div className="relative">
                     <input

@@ -22,10 +22,45 @@ export default function App() {
     localStorage.setItem(WORKSPACE_KEY, activeWorkspace)
   }, [activeWorkspace])
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        const workspaces: WorkspaceId[] = ['translate', 'proofread', 'dictionary', 'documents', 'settings']
+        const num = parseInt(e.key)
+        if (num >= 1 && num <= 5) {
+          e.preventDefault()
+          setActiveWorkspace(workspaces[num - 1])
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  const [isOffline, setIsOffline] = useState(!navigator.onLine)
+
+  useEffect(() => {
+    const goOffline = () => setIsOffline(true)
+    const goOnline = () => setIsOffline(false)
+    window.addEventListener('offline', goOffline)
+    window.addEventListener('online', goOnline)
+    return () => {
+      window.removeEventListener('offline', goOffline)
+      window.removeEventListener('online', goOnline)
+    }
+  }, [])
+
   return (
     <div className="flex h-screen bg-surface text-on-surface overflow-hidden">
       {/* Titlebar drag region */}
       <div className="fixed top-0 left-0 right-0 h-9 drag-region z-[100]" />
+
+      {isOffline && (
+        <div className="fixed top-9 left-64 right-0 z-50 bg-error/15 border-b border-error/20 px-4 py-2 flex items-center justify-center gap-2 text-error text-xs font-label font-semibold">
+          <span className="material-symbols-outlined text-sm">cloud_off</span>
+          You are offline. Translation requires an internet connection.
+        </div>
+      )}
 
       <Sidebar active={activeWorkspace} onNavigate={setActiveWorkspace} />
 

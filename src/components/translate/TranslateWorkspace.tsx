@@ -30,6 +30,11 @@ export default function TranslateWorkspace() {
   const handleTranslate = useCallback(async () => {
     if (!sourceText.trim() || isTranslating) return
 
+    if (sourceLang === targetLang) {
+      setTranslatedText(sourceText)
+      return
+    }
+
     setIsTranslating(true)
     setTranslatedText('')
 
@@ -212,7 +217,7 @@ export default function TranslateWorkspace() {
         <div className="glass-panel rounded-2xl border border-outline-variant/10 px-4 py-3 flex items-center gap-3 pointer-events-auto shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
           <button
             onClick={handleTranslate}
-            disabled={!sourceText.trim() || isTranslating}
+            disabled={!sourceText.trim() || isTranslating || sourceLang === targetLang}
             className="liquid-gradient px-8 py-2.5 rounded-xl text-white font-label font-bold text-sm tracking-wide shadow-lg hover:shadow-xl hover:brightness-110 transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:brightness-100 flex items-center gap-2"
           >
             {isTranslating ? (

@@ -101,6 +101,7 @@ const en = {
   'settings.anthropicKey': 'Anthropic API Key',
   'settings.reset': 'Reset to Default',
   'settings.save': 'Save Changes',
+  'settings.getKey': 'Get API key',
 } as const
 
 export default en
