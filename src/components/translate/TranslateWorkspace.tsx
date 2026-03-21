@@ -19,20 +19,6 @@ export default function TranslateWorkspace() {
 
   const sourceParas = useMemo(() => splitParagraphs(sourceText), [sourceText])
 
-  // Precompute character ranges for each source paragraph (for textarea selection)
-  const sourceParaRanges = useMemo(() => {
-    const ranges: { start: number; end: number }[] = []
-    let searchFrom = 0
-    for (const para of sourceParas) {
-      const start = sourceText.indexOf(para, searchFrom)
-      if (start !== -1) {
-        ranges.push({ start, end: start + para.length })
-        searchFrom = start + para.length
-      }
-    }
-    return ranges
-  }, [sourceText, sourceParas])
-
   // Switch to view mode when translation completes, edit mode when text changes
   useEffect(() => {
     if (translatedText && !isTranslating) setIsEditingSource(false)
@@ -57,25 +43,9 @@ export default function TranslateWorkspace() {
   }, [])
 
   const handleHoverIndex = useCallback((idx: number | null) => {
-    const textarea = textareaRef.current
-    if (!textarea) return
-
-    if (idx !== null && idx < sourceParaRanges.length) {
-      const { start, end } = sourceParaRanges[idx]
-      textarea.focus({ preventScroll: true })
-      textarea.setSelectionRange(start, end)
-
-      // Scroll textarea so the selected paragraph is visible
-      // Estimate position: ratio of character offset to total text * scrollable height
-      const ratio = start / (textarea.value.length || 1)
-      const targetScroll = ratio * textarea.scrollHeight - textarea.clientHeight / 3
-      textarea.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' })
-    } else {
-      const len = textarea.value.length
-      textarea.setSelectionRange(len, len)
-      textarea.blur()
-    }
-  }, [sourceParaRanges])
+    // In view mode, just update the source highlight index (no textarea)
+    setHoveredSourceIdx(idx)
+  }, [])
 
   const handleTranslate = useCallback(async () => {
     if (!sourceText.trim() || isTranslating) return

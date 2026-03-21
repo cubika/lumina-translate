@@ -17,7 +17,11 @@ export { splitParagraphs }
 
 export default function TranslationOutput({ translatedText, isTranslating, onHoverIndex, highlightIndex }: TranslationOutputProps) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
-  const targetParas = useMemo(() => splitParagraphs(translatedText), [translatedText])
+  // Only split when not streaming — avoids recomputing on every chunk
+  const targetParas = useMemo(
+    () => isTranslating ? [] : splitParagraphs(translatedText),
+    [translatedText, isTranslating]
+  )
 
   const handleEnter = useCallback((i: number) => {
     setHoveredIdx(i)

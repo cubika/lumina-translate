@@ -7,7 +7,7 @@
     -webkit-app-region: no-drag;
   }
 
-  * {
+  .scroll-smooth {
     scroll-behavior: smooth;
   }
 }
