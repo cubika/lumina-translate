@@ -101,6 +101,7 @@ const ja = {
   'settings.anthropicKey': 'Anthropic APIキー',
   'settings.reset': 'デフォルトに戻す',
   'settings.save': '設定を保存',
+  'settings.getKey': 'APIキーを取得',
 } as const
 
 export default ja

@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
 
 export interface AIProvider {
   id: string
@@ -165,6 +166,46 @@ async function callAI(
   }
 }
 
+async function callAIStream(
+  messages: { role: string; content: string }[],
+  model: string,
+  providerType: 'openai' | 'anthropic',
+  onChunk: (text: string) => void,
+  system?: string,
+  maxTokens?: number
+): Promise<string> {
+  const settings = loadSettings()
+  const config = { openaiKey: settings.openaiApiKey, openaiBase: settings.openaiBaseUrl, anthropicKey: settings.anthropicApiKey }
+
+  if (window.__TAURI_INTERNALS__) {
+    const unlisten = await listen<string>('ai-stream-chunk', (event) => {
+      onChunk(event.payload)
+    })
+
+    try {
+      const resp = await invoke<{ ok: boolean; result?: string; error?: string }>('ai_call_stream', {
+        req: {
+          provider: providerType,
+          model,
+          messages,
+          system,
+          openaiKey: config.openaiKey,
+          openaiBase: config.openaiBase,
+          anthropicKey: config.anthropicKey,
+          maxTokens: maxTokens || 4096,
+        },
+      })
+      if (!resp.ok) throw new Error(resp.error)
+      return resp.result!
+    } finally {
+      unlisten()
+    }
+  }
+
+  // Browser fallback — no streaming
+  return callAI(messages, model, providerType, system, maxTokens)
+}
+
 let currentAudio: HTMLAudioElement | null = null
 
 export async function speakText(text: string, lang: string): Promise<void> {
@@ -214,18 +255,22 @@ export async function testConnection(model: string, providerType: 'openai' | 'an
   }
 }
 
-export async function translate(req: TranslationRequest): Promise<string> {
-  const systemMsg = `You are a master translator fluent in ${req.sourceLang} and ${req.targetLang}. Follow these three principles:
+const TRANSLATE_SYSTEM = (sourceLang: string, targetLang: string) =>
+  `You are a master translator fluent in ${sourceLang} and ${targetLang}. Follow these three principles:
 
 1. Faithful: Accurately convey the original meaning — no additions, omissions, or distortions
-2. Expressive: Write naturally in ${req.targetLang} — the translation should read as if originally written in ${req.targetLang}, not as a word-for-word rendering. Use idiomatic expressions and natural sentence structures of ${req.targetLang}
+2. Expressive: Write naturally in ${targetLang} — the translation should read as if originally written in ${targetLang}, not as a word-for-word rendering. Use idiomatic expressions and natural sentence structures of ${targetLang}
 3. Elegant: Match or elevate the literary quality — choose precise, refined wording appropriate to the register
 
 Additional rules:
-- Preserve formatting: line breaks, bullet points, markdown, tables, code blocks
+- Output as PLAIN TEXT only — do NOT use markdown formatting (no #, *, **, \`, etc.)
+- Preserve the EXACT paragraph structure: keep the same number of paragraphs and line breaks as the source
 - For technical terms with no standard translation, keep the original in parentheses
 - For proper nouns (names, brands, places), keep as-is unless a widely accepted translation exists
 - Output ONLY the translated text, no explanations or commentary`
+
+export async function translate(req: TranslationRequest): Promise<string> {
+  const systemMsg = TRANSLATE_SYSTEM(req.sourceLang, req.targetLang)
 
   const messages = [{ role: 'user', content: req.text }]
 
@@ -234,6 +279,19 @@ Additional rules:
   const maxTokens = Math.max(4096, estimatedTokens)
 
   return callAI(messages, req.model, req.providerType, systemMsg, maxTokens)
+}
+
+export async function translateStream(
+  req: TranslationRequest,
+  onChunk: (text: string) => void
+): Promise<string> {
+  const systemMsg = TRANSLATE_SYSTEM(req.sourceLang, req.targetLang)
+
+  const messages = [{ role: 'user', content: req.text }]
+  const estimatedTokens = Math.ceil(req.text.length / 3) * 2
+  const maxTokens = Math.max(4096, estimatedTokens)
+
+  return callAIStream(messages, req.model, req.providerType, onChunk, systemMsg, maxTokens)
 }
 
 export async function proofread(req: ProofreadRequest): Promise<{
@@ -272,19 +330,38 @@ If the text has no issues, return {"corrected": "<original text>", "issues": []}
   }
 }
 
-export async function lookupWord(req: DictionaryRequest): Promise<{
+export interface DictionaryDefinition {
+  text: string
+  register?: string  // "informal", "formal", "technical", "dated", "literary", etc.
+}
+
+export interface DictionaryMeaning {
+  wordClass: string  // "Noun", "Verb", "Adjective", etc.
+  definitions: DictionaryDefinition[]
+}
+
+export interface DictionaryExample {
+  sentence: string
+  translation: string
+}
+
+export interface DictionaryResult {
   word: string
   phonetics: string
-  wordClass: string
-  definition: string
+  meanings: DictionaryMeaning[]
   etymology: string
+  usageNote: string
+  frequency: string
+  relatedForms: string[]
   synonyms: string[]
   antonyms: string[]
-  examples: string[]
-}> {
+  examples: DictionaryExample[]
+}
+
+export async function lookupWord(req: DictionaryRequest): Promise<DictionaryResult> {
   const contextPart = req.context ? `\nContext: "${req.context}"` : ''
   const langNote = req.nativeLang && req.nativeLang !== 'English'
-    ? `\nIMPORTANT: Write "definition", "etymology", and "examples" in ${req.nativeLang}. Keep "word", "phonetics", "wordClass", "synonyms", and "antonyms" in the original language of the word.`
+    ? `\nIMPORTANT: Write definitions, "etymology", and "usageNote" in ${req.nativeLang}. Keep "word", "phonetics", "wordClass", "synonyms", "antonyms", "examples", "relatedForms", "register", and "frequency" in the original language of the word.`
     : ''
   const systemMsg = `You are a multilingual linguistic expert. Analyze the given word or phrase. Detect the input language automatically.${contextPart}${langNote}
 
@@ -292,13 +369,33 @@ Return a JSON object (no markdown fences, no extra text):
 {
   "word": "the word/phrase as given",
   "phonetics": "IPA pronunciation (e.g. /wɜːrd/)",
-  "wordClass": "Noun | Verb | Adjective | Adverb | etc.",
-  "definition": "clear, concise definition",
+  "meanings": [
+    {
+      "wordClass": "Noun",
+      "definitions": [
+        { "text": "primary definition of this word class", "register": "informal" },
+        { "text": "secondary definition if applicable", "register": "technical" }
+      ]
+    },
+    {
+      "wordClass": "Verb",
+      "definitions": [
+        { "text": "definition as verb", "register": "dated" }
+      ]
+    }
+  ],
   "etymology": "origin and historical development of the word",
+  "usageNote": "how the word is typically used: formal/informal register, common collocations, nuances, or pitfalls",
+  "frequency": "Common | Academic | Literary | Rare | Archaic",
+  "relatedForms": ["related word forms, e.g. for 'run': runner (noun), running (gerund), ran (past tense)"],
   "synonyms": ["5-7 synonyms in the same language as the word"],
   "antonyms": ["2-4 antonyms in the same language as the word"],
-  "examples": ["2 natural example sentences using the word in context"]
-}`
+  "examples": [
+    { "sentence": "example sentence in the word's original language", "translation": "translation of the sentence in ${req.nativeLang || 'English'}" }
+  ]
+}
+
+Include ALL word classes the word can function as (e.g. both noun and verb for "slang"). For each word class, provide the primary definition and any important secondary definitions. Tag each definition with its register (informal, formal, technical, dated, literary, slang, etc.) when applicable. Provide 4 example sentences in the word's original language, each with a translation in ${req.nativeLang || 'English'}.`
 
   const messages = [{ role: 'user', content: `Analyze: ${req.word}` }]
 
@@ -309,12 +406,14 @@ Return a JSON object (no markdown fences, no extra text):
     return {
       word: req.word,
       phonetics: '',
-      wordClass: '',
-      definition: result,
+      meanings: [{ wordClass: '', definitions: [{ text: result }] }],
       etymology: '',
+      usageNote: '',
+      frequency: '',
+      relatedForms: [],
       synonyms: [],
       antonyms: [],
-      examples: [],
+      examples: [{ sentence: result, translation: '' }],
     }
   }
 }

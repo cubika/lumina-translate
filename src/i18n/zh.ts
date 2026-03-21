@@ -101,6 +101,7 @@ const zh = {
   'settings.anthropicKey': 'Anthropic API 密钥',
   'settings.reset': '恢复默认',
   'settings.save': '保存设置',
+  'settings.getKey': '获取 API 密钥',
 } as const
 
 export default zh

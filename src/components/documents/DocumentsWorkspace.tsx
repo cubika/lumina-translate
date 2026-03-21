@@ -51,6 +51,7 @@ export default function DocumentsWorkspace() {
     async (file: File) => {
       const settings = loadSettings()
       const text = await file.text()
+      if (!text.trim()) return
       const docId = Date.now()
       const sizeKB = (file.size / 1024).toFixed(1)
       const sizeLabel = file.size >= 1024 * 1024
@@ -151,10 +152,10 @@ export default function DocumentsWorkspace() {
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`glass-panel rounded-2xl border transition-all duration-300 relative overflow-hidden ${
+              className={`glass-panel rounded-2xl border-2 border-dashed transition-all duration-300 relative overflow-hidden ${
                 isDragOver
-                  ? 'border-primary-fixed-dim/60 shadow-[0_0_40px_rgba(174,198,255,0.12)]'
-                  : 'border-outline-variant/10 hover:border-outline-variant/20'
+                  ? 'border-primary-fixed-dim/60 shadow-[0_0_40px_rgba(174,198,255,0.15)] bg-primary-fixed-dim/5 scale-[1.01]'
+                  : 'border-outline-variant/10 border-solid hover:border-outline-variant/20'
               }`}
               style={{ height: 380 }}
             >
