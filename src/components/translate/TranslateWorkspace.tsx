@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { translateStream, speakText } from '../../services/ai'
 import { loadSettings, LANGUAGES, langToBcp47 } from '../../services/settings'
 import { useTranslation } from '../../hooks/useTranslation'
-import TranslationOutput, { splitParagraphs } from './TranslationOutput'
+import TranslationOutput, { splitParagraphs, Paragraph } from './TranslationOutput'
 
 export default function TranslateWorkspace() {
   const t = useTranslation()
@@ -24,8 +24,12 @@ export default function TranslateWorkspace() {
     if (translatedText && !isTranslating) setIsEditingSource(false)
   }, [translatedText, isTranslating])
 
-  const handleSourceHoverIndex = useCallback((idx: number | null) => {
+  const handleHoverPara = useCallback((idx: number) => {
     setHoveredSourceIdx(idx)
+  }, [])
+
+  const handleHoverParaLeave = useCallback(() => {
+    setHoveredSourceIdx(null)
   }, [])
 
   useEffect(() => {
@@ -42,10 +46,6 @@ export default function TranslateWorkspace() {
     setSourceText(e.target.value)
   }, [])
 
-  const handleHoverIndex = useCallback((idx: number | null) => {
-    // In view mode, just update the source highlight index (no textarea)
-    setHoveredSourceIdx(idx)
-  }, [])
 
   const handleTranslate = useCallback(async () => {
     if (!sourceText.trim() || isTranslating) return
@@ -156,19 +156,19 @@ export default function TranslateWorkspace() {
               <div
                 className="flex-1 p-5 overflow-y-auto min-h-0 scroll-smooth cursor-text"
                 onClick={() => { setIsEditingSource(true); setTimeout(() => textareaRef.current?.focus(), 0) }}
+                onMouseLeave={handleHoverParaLeave}
               >
                 <div className="flex flex-col gap-3">
                   {sourceParas.map((para, i) => (
-                    <p
+                    <Paragraph
                       key={i}
-                      onMouseEnter={() => handleSourceHoverIndex(i)}
-                      onMouseLeave={() => handleSourceHoverIndex(null)}
-                      className={`text-on-surface font-body text-[15px] leading-relaxed whitespace-pre-wrap rounded-lg px-2 py-1 -mx-2 transition-colors duration-150 ${
-                        hoveredSourceIdx === i ? 'bg-primary-fixed-dim/15 border-l-2 border-primary-fixed-dim/50 pl-3' : 'border-l-2 border-transparent pl-3'
-                      }`}
-                    >
-                      {para}
-                    </p>
+                      text={para}
+                      index={i}
+                      isActive={hoveredSourceIdx === i}
+                      onEnter={handleHoverPara}
+                      onLeave={handleHoverParaLeave}
+                      variant="source"
+                    />
                   ))}
                 </div>
               </div>
@@ -237,7 +237,7 @@ export default function TranslateWorkspace() {
             </div>
           </div>
           <div className="bg-surface-container-high rounded-2xl border border-outline-variant/10 flex-1 flex flex-col min-h-[260px] border-l-2 border-l-secondary-fixed-dim">
-            <div className="flex-1 p-5 overflow-y-auto min-h-0 scroll-smooth">
+            <div className="flex-1 p-5 overflow-y-auto min-h-0 scroll-smooth" onMouseLeave={handleHoverParaLeave}>
               {isTranslating && !translatedText ? (
                 <div className="flex flex-col gap-3 animate-pulse">
                   <div className="h-4 bg-surface-container-highest/30 rounded-lg w-full" />
@@ -251,7 +251,7 @@ export default function TranslateWorkspace() {
                 <TranslationOutput
                   translatedText={translatedText}
                   isTranslating={isTranslating}
-                  onHoverIndex={handleHoverIndex}
+                  onHoverIndex={handleHoverPara}
                   highlightIndex={hoveredSourceIdx}
                 />
               ) : (

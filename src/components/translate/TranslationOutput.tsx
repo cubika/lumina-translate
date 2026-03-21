@@ -1,10 +1,10 @@
-import { useState, useMemo, useCallback } from 'react'
+import { memo, useState, useMemo, useCallback } from 'react'
 
 interface TranslationOutputProps {
   translatedText: string
   isTranslating: boolean
-  onHoverIndex: (index: number | null) => void
-  highlightIndex: number | null  // highlighted from source-side hover
+  onHoverIndex: (index: number) => void
+  highlightIndex: number | null
 }
 
 function splitParagraphs(text: string): string[] {
@@ -15,9 +15,42 @@ function splitParagraphs(text: string): string[] {
 
 export { splitParagraphs }
 
-export default function TranslationOutput({ translatedText, isTranslating, onHoverIndex, highlightIndex }: TranslationOutputProps) {
+const Paragraph = memo(function Paragraph({
+  text,
+  index,
+  isActive,
+  onEnter,
+  onLeave,
+  variant,
+}: {
+  text: string
+  index: number
+  isActive: boolean
+  onEnter: (i: number) => void
+  onLeave: () => void
+  variant: 'source' | 'target'
+}) {
+  const activeClass = variant === 'source'
+    ? 'bg-primary-fixed-dim/15 border-l-2 border-primary-fixed-dim/50 pl-3'
+    : 'bg-secondary-fixed-dim/15 border-l-2 border-secondary-fixed-dim/50 pl-3'
+
+  return (
+    <p
+      onMouseEnter={() => onEnter(index)}
+      onMouseLeave={onLeave}
+      className={`text-on-surface font-body text-[15px] leading-relaxed whitespace-pre-wrap rounded-lg px-2 py-1 -mx-2 transition-colors duration-150 cursor-default ${
+        isActive ? activeClass : 'border-l-2 border-transparent pl-3'
+      }`}
+    >
+      {text}
+    </p>
+  )
+})
+
+export { Paragraph }
+
+export default memo(function TranslationOutput({ translatedText, isTranslating, onHoverIndex, highlightIndex }: TranslationOutputProps) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
-  // Only split when not streaming — avoids recomputing on every chunk
   const targetParas = useMemo(
     () => isTranslating ? [] : splitParagraphs(translatedText),
     [translatedText, isTranslating]
@@ -30,10 +63,8 @@ export default function TranslationOutput({ translatedText, isTranslating, onHov
 
   const handleLeave = useCallback(() => {
     setHoveredIdx(null)
-    onHoverIndex(null)
-  }, [onHoverIndex])
+  }, [])
 
-  // During streaming or single paragraph — render as plain text
   if (isTranslating || targetParas.length <= 1) {
     return (
       <p className="text-on-surface font-body text-[15px] leading-relaxed whitespace-pre-wrap">
@@ -45,26 +76,21 @@ export default function TranslationOutput({ translatedText, isTranslating, onHov
     )
   }
 
-  // Active index: either hovered from this side, or highlighted from source-side hover
   const activeIdx = hoveredIdx ?? highlightIndex
 
   return (
     <div className="flex flex-col gap-3">
       {targetParas.map((para, i) => (
-        <div
+        <Paragraph
           key={i}
-          onMouseEnter={() => handleEnter(i)}
-          onMouseLeave={handleLeave}
-        >
-          <p
-            className={`text-on-surface font-body text-[15px] leading-relaxed whitespace-pre-wrap rounded-lg px-2 py-1 -mx-2 transition-colors duration-150 cursor-default ${
-              activeIdx === i ? 'bg-secondary-fixed-dim/15 border-l-2 border-secondary-fixed-dim/50 pl-3' : 'border-l-2 border-transparent pl-3'
-            }`}
-          >
-            {para}
-          </p>
-        </div>
+          text={para}
+          index={i}
+          isActive={activeIdx === i}
+          onEnter={handleEnter}
+          onLeave={handleLeave}
+          variant="target"
+        />
       ))}
     </div>
   )
-}
+})
