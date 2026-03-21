@@ -6,6 +6,10 @@
   body {
     -webkit-app-region: no-drag;
   }
+
+  * {
+    scroll-behavior: smooth;
+  }
 }
 
 @layer components {

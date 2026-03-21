@@ -13,11 +13,22 @@ export default function TranslateWorkspace() {
   const [isTranslating, setIsTranslating] = useState(false)
   const [copied, setCopied] = useState(false)
   const [swapRotation, setSwapRotation] = useState(0)
-  const [hoveredParaIdx, setHoveredParaIdx] = useState<number | null>(null)
-  const sourceScrollRef = useRef<HTMLDivElement>(null)
-  const backdropRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const sourceParas = useMemo(() => splitParagraphs(sourceText), [sourceText])
+  // Precompute paragraph positions in source text for selection highlighting
+  const sourceParaRanges = useMemo(() => {
+    const paras = splitParagraphs(sourceText)
+    const ranges: { start: number; end: number }[] = []
+    let searchFrom = 0
+    for (const para of paras) {
+      const start = sourceText.indexOf(para, searchFrom)
+      if (start !== -1) {
+        ranges.push({ start, end: start + para.length })
+        searchFrom = start + para.length
+      }
+    }
+    return ranges
+  }, [sourceText])
 
   useEffect(() => {
     const sync = () => {
@@ -29,16 +40,25 @@ export default function TranslateWorkspace() {
     return () => window.removeEventListener('settings-changed', sync)
   }, [])
 
-  // Sync textarea scroll with backdrop
-  const handleSourceScroll = useCallback(() => {
-    if (sourceScrollRef.current && backdropRef.current) {
-      backdropRef.current.scrollTop = sourceScrollRef.current.scrollTop
-    }
-  }, [])
-
   const handleSourceChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setSourceText(e.target.value)
   }, [])
+
+  const handleHoverIndex = useCallback((idx: number | null) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    if (idx !== null && idx < sourceParaRanges.length) {
+      const { start, end } = sourceParaRanges[idx]
+      textarea.focus({ preventScroll: true })
+      textarea.setSelectionRange(start, end)
+    } else {
+      // Clear selection by collapsing to end
+      const len = textarea.value.length
+      textarea.setSelectionRange(len, len)
+      textarea.blur()
+    }
+  }, [sourceParaRanges])
 
   const handleTranslate = useCallback(async () => {
     if (!sourceText.trim() || isTranslating) return
@@ -98,9 +118,6 @@ export default function TranslateWorkspace() {
     setTranslatedText('')
   }, [])
 
-  // Whether to show highlight backdrop (only when translated + hovering)
-  const showHighlight = translatedText && !isTranslating && hoveredParaIdx !== null && sourceParas.length > 1
-
   return (
     <div className="flex flex-col h-full px-8 py-6 gap-6 overflow-y-auto pb-28">
       {/* Side-by-side editor */}
@@ -146,42 +163,20 @@ export default function TranslateWorkspace() {
               </button>
             )}
           </div>
-          <div className="glass-panel rounded-2xl border border-outline-variant/10 flex-1 flex flex-col min-h-[260px] relative">
-            {/* Highlight backdrop — sits behind the textarea */}
-            {showHighlight && (
-              <div
-                ref={backdropRef}
-                className="absolute inset-0 p-5 overflow-hidden pointer-events-none font-body text-[15px] leading-relaxed text-transparent whitespace-pre-wrap break-words"
-              >
-                {sourceParas.map((para, i) => (
-                  <div
-                    key={i}
-                    className={`rounded-md transition-colors duration-150 ${
-                      hoveredParaIdx === i
-                        ? 'bg-primary-fixed-dim/12'
-                        : ''
-                    }`}
-                  >
-                    {para}
-                    {i < sourceParas.length - 1 && '\n\n'}
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="glass-panel rounded-2xl border border-outline-variant/10 flex-1 flex flex-col min-h-[260px]">
             <textarea
-              ref={sourceScrollRef as unknown as React.RefObject<HTMLTextAreaElement>}
+              ref={textareaRef}
               value={sourceText}
               onChange={handleSourceChange}
-              onScroll={handleSourceScroll}
               placeholder={t('translate.placeholder')}
-              className="flex-1 bg-transparent text-on-surface font-body text-[15px] leading-relaxed p-5 resize-none outline-none placeholder:text-on-surface-variant/30 w-full relative z-10"
+              className="flex-1 bg-transparent text-on-surface font-body text-[15px] leading-relaxed p-5 resize-none outline-none placeholder:text-on-surface-variant/30 w-full"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                   handleTranslate()
                 }
               }}
             />
-            <div className="flex justify-end px-5 pb-3 relative z-10">
+            <div className="flex justify-end px-5 pb-3">
               <span className="text-[11px] font-label text-on-surface-variant/60">
                 {sourceText.length} {t('translate.chars')}
               </span>
@@ -231,7 +226,7 @@ export default function TranslateWorkspace() {
             </div>
           </div>
           <div className="bg-surface-container-high rounded-2xl border border-outline-variant/10 flex-1 flex flex-col min-h-[260px] border-l-2 border-l-secondary-fixed-dim">
-            <div className="flex-1 p-5 overflow-y-auto min-h-0">
+            <div className="flex-1 p-5 overflow-y-auto min-h-0 scroll-smooth">
               {isTranslating && !translatedText ? (
                 <div className="flex flex-col gap-3 animate-pulse">
                   <div className="h-4 bg-surface-container-highest/30 rounded-lg w-full" />
@@ -246,7 +241,7 @@ export default function TranslateWorkspace() {
                   translatedText={translatedText}
                   sourceText={sourceText}
                   isTranslating={isTranslating}
-                  onHoverIndex={setHoveredParaIdx}
+                  onHoverIndex={handleHoverIndex}
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full gap-3 opacity-30">
