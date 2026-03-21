@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { translate, downloadTextFile } from '../../services/ai'
 import { loadSettings, LANGUAGES } from '../../services/settings'
 import { useTranslation } from '../../hooks/useTranslation'
+import { extractPdfText } from '../../services/pdf'
 
 interface TranslatedDoc {
   id: number
@@ -16,7 +17,7 @@ interface TranslatedDoc {
   error?: string
 }
 
-const supportedFormats = ['TXT', 'MD', 'CSV', 'JSON', 'SRT']
+const supportedFormats = ['TXT', 'MD', 'CSV', 'JSON', 'SRT', 'PDF']
 
 function statusColor(status: TranslatedDoc['status']) {
   switch (status) {
@@ -50,7 +51,8 @@ export default function DocumentsWorkspace() {
   const processFile = useCallback(
     async (file: File) => {
       const settings = loadSettings()
-      const text = await file.text()
+      const isPdf = file.name.toLowerCase().endsWith('.pdf')
+      const text = isPdf ? await extractPdfText(file) : await file.text()
       if (!text.trim()) return
       const docId = Date.now()
       const sizeKB = (file.size / 1024).toFixed(1)
@@ -202,7 +204,7 @@ export default function DocumentsWorkspace() {
                     type="file"
                     className="hidden"
                     onChange={handleFileSelect}
-                    accept=".txt,.md,.csv,.json,.srt"
+                    accept=".txt,.md,.csv,.json,.srt,.pdf"
                   />
                 </div>
 
