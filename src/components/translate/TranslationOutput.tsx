@@ -1,9 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
-import ReactMarkdown from 'react-markdown'
 
 interface TranslationOutputProps {
   translatedText: string
-  sourceText: string
   isTranslating: boolean
   onHoverIndex: (index: number | null) => void
 }
@@ -16,7 +14,7 @@ function splitParagraphs(text: string): string[] {
 
 export { splitParagraphs }
 
-export default function TranslationOutput({ translatedText, sourceText, isTranslating, onHoverIndex }: TranslationOutputProps) {
+export default function TranslationOutput({ translatedText, isTranslating, onHoverIndex }: TranslationOutputProps) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
   const targetParas = useMemo(() => splitParagraphs(translatedText), [translatedText])
 
@@ -30,32 +28,33 @@ export default function TranslationOutput({ translatedText, sourceText, isTransl
     onHoverIndex(null)
   }, [onHoverIndex])
 
+  // During streaming or single paragraph — render as plain text
   if (isTranslating || targetParas.length <= 1) {
     return (
-      <div className="prose-output">
-        <ReactMarkdown>{translatedText}</ReactMarkdown>
+      <p className="text-on-surface font-body text-[15px] leading-relaxed whitespace-pre-wrap">
+        {translatedText}
         {isTranslating && (
           <span className="inline-block w-0.5 h-4 bg-secondary-fixed-dim animate-pulse ml-0.5 align-text-bottom" />
         )}
-      </div>
+      </p>
     )
   }
 
   return (
-    <div className="prose-output flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       {targetParas.map((para, i) => (
         <div
           key={i}
           onMouseEnter={() => handleEnter(i)}
           onMouseLeave={handleLeave}
         >
-          <div
-            className={`rounded-lg px-2 py-1 -mx-2 transition-colors duration-150 ${
+          <p
+            className={`text-on-surface font-body text-[15px] leading-relaxed whitespace-pre-wrap rounded-lg px-2 py-1 -mx-2 transition-colors duration-150 ${
               hoveredIdx === i ? 'bg-primary-fixed-dim/8' : ''
             }`}
           >
-            <ReactMarkdown>{para}</ReactMarkdown>
-          </div>
+            {para}
+          </p>
         </div>
       ))}
     </div>

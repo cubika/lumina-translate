@@ -239,7 +239,6 @@ export default function TranslateWorkspace() {
               ) : translatedText ? (
                 <TranslationOutput
                   translatedText={translatedText}
-                  sourceText={sourceText}
                   isTranslating={isTranslating}
                   onHoverIndex={handleHoverIndex}
                 />

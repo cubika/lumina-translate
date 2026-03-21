@@ -255,18 +255,22 @@ export async function testConnection(model: string, providerType: 'openai' | 'an
   }
 }
 
-export async function translate(req: TranslationRequest): Promise<string> {
-  const systemMsg = `You are a master translator fluent in ${req.sourceLang} and ${req.targetLang}. Follow these three principles:
+const TRANSLATE_SYSTEM = (sourceLang: string, targetLang: string) =>
+  `You are a master translator fluent in ${sourceLang} and ${targetLang}. Follow these three principles:
 
 1. Faithful: Accurately convey the original meaning — no additions, omissions, or distortions
-2. Expressive: Write naturally in ${req.targetLang} — the translation should read as if originally written in ${req.targetLang}, not as a word-for-word rendering. Use idiomatic expressions and natural sentence structures of ${req.targetLang}
+2. Expressive: Write naturally in ${targetLang} — the translation should read as if originally written in ${targetLang}, not as a word-for-word rendering. Use idiomatic expressions and natural sentence structures of ${targetLang}
 3. Elegant: Match or elevate the literary quality — choose precise, refined wording appropriate to the register
 
 Additional rules:
-- Preserve formatting: line breaks, bullet points, markdown, tables, code blocks
+- Output as PLAIN TEXT only — do NOT use markdown formatting (no #, *, **, \`, etc.)
+- Preserve the EXACT paragraph structure: keep the same number of paragraphs and line breaks as the source
 - For technical terms with no standard translation, keep the original in parentheses
 - For proper nouns (names, brands, places), keep as-is unless a widely accepted translation exists
 - Output ONLY the translated text, no explanations or commentary`
+
+export async function translate(req: TranslationRequest): Promise<string> {
+  const systemMsg = TRANSLATE_SYSTEM(req.sourceLang, req.targetLang)
 
   const messages = [{ role: 'user', content: req.text }]
 
@@ -281,17 +285,7 @@ export async function translateStream(
   req: TranslationRequest,
   onChunk: (text: string) => void
 ): Promise<string> {
-  const systemMsg = `You are a master translator fluent in ${req.sourceLang} and ${req.targetLang}. Follow these three principles:
-
-1. Faithful: Accurately convey the original meaning — no additions, omissions, or distortions
-2. Expressive: Write naturally in ${req.targetLang} — the translation should read as if originally written in ${req.targetLang}, not as a word-for-word rendering. Use idiomatic expressions and natural sentence structures of ${req.targetLang}
-3. Elegant: Match or elevate the literary quality — choose precise, refined wording appropriate to the register
-
-Additional rules:
-- Preserve formatting: line breaks, bullet points, markdown, tables, code blocks
-- For technical terms with no standard translation, keep the original in parentheses
-- For proper nouns (names, brands, places), keep as-is unless a widely accepted translation exists
-- Output ONLY the translated text, no explanations or commentary`
+  const systemMsg = TRANSLATE_SYSTEM(req.sourceLang, req.targetLang)
 
   const messages = [{ role: 'user', content: req.text }]
   const estimatedTokens = Math.ceil(req.text.length / 3) * 2
