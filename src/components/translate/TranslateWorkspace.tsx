@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { translate } from '../../services/ai'
+import { translate, speakText } from '../../services/ai'
 import { loadSettings, LANGUAGES, langToBcp47 } from '../../services/settings'
 import { useTranslation } from '../../hooks/useTranslation'
 
@@ -151,11 +151,8 @@ export default function TranslateWorkspace() {
             <div className="flex items-center gap-1">
               <button
                 onClick={() => {
-                  if (translatedText && 'speechSynthesis' in window) {
-                    speechSynthesis.cancel()
-                    const utterance = new SpeechSynthesisUtterance(translatedText)
-                    utterance.lang = langToBcp47(targetLang)
-                    speechSynthesis.speak(utterance)
+                  if (translatedText) {
+                    speakText(translatedText, langToBcp47(targetLang))
                   }
                 }}
                 disabled={!translatedText}

@@ -165,6 +165,40 @@ async function callAI(
   }
 }
 
+let currentAudio: HTMLAudioElement | null = null
+
+export async function speakText(text: string, lang: string): Promise<void> {
+  // Stop any currently playing audio
+  if (currentAudio) {
+    currentAudio.pause()
+    currentAudio = null
+  }
+
+  // Tauri path — native Windows TTS with full voice support
+  if (window.__TAURI_INTERNALS__) {
+    try {
+      const wavBytes = await invoke<number[]>('speak', { text, lang })
+      const blob = new Blob([new Uint8Array(wavBytes)], { type: 'audio/wav' })
+      const url = URL.createObjectURL(blob)
+      currentAudio = new Audio(url)
+      currentAudio.onended = () => { URL.revokeObjectURL(url); currentAudio = null }
+      await currentAudio.play()
+    } catch (err) {
+      console.error('Native TTS failed:', err)
+    }
+    return
+  }
+
+  // Browser fallback — Web Speech API
+  if ('speechSynthesis' in window) {
+    speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    const hasVoice = speechSynthesis.getVoices().some(v => v.lang.startsWith(lang.split('-')[0]))
+    if (hasVoice) utterance.lang = lang
+    speechSynthesis.speak(utterance)
+  }
+}
+
 function extractJSON(text: string): string {
   // Strip markdown code fences (handles various formats)
   const fenceMatch = text.match(/```\w*\s*([\s\S]*?)\s*```/)

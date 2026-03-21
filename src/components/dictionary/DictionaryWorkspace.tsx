@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { lookupWord, downloadTextFile } from '../../services/ai'
+import { lookupWord, downloadTextFile, speakText } from '../../services/ai'
 import { loadSettings } from '../../services/settings'
 import { useTranslation } from '../../hooks/useTranslation'
 
@@ -253,13 +253,7 @@ export default function DictionaryWorkspace() {
                     {result.phonetics}
                   </span>
                   <button
-                    onClick={() => {
-                      if ('speechSynthesis' in window) {
-                        speechSynthesis.cancel()
-                        const utterance = new SpeechSynthesisUtterance(result.word)
-                        speechSynthesis.speak(utterance)
-                      }
-                    }}
+                    onClick={() => speakText(result.word, 'en')}
                     className="w-8 h-8 rounded-full bg-primary-fixed-dim/10 hover:bg-primary-fixed-dim/20 flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer"
                     title={t('dictionary.pronounce')}
                   >

@@ -126,10 +126,63 @@ async fn ai_call(req: AiCallRequest) -> AiCallResponse {
     }
 }
 
+#[cfg(windows)]
+mod tts {
+    use windows::Media::SpeechSynthesis::SpeechSynthesizer;
+    use windows::Storage::Streams::DataReader;
+
+    pub fn speak_sync(text: &str, lang: &str) -> Result<Vec<u8>, String> {
+        let synth = SpeechSynthesizer::new().map_err(|e| format!("TTS init failed: {}", e))?;
+
+        // Try to find a voice matching the requested language
+        let voices = SpeechSynthesizer::AllVoices().map_err(|e| format!("Get voices failed: {}", e))?;
+        for i in 0..voices.Size().unwrap_or(0) {
+            if let Ok(voice) = voices.GetAt(i) {
+                if let Ok(voice_lang) = voice.Language() {
+                    if voice_lang.to_string().starts_with(lang.split('-').next().unwrap_or("")) {
+                        let _ = synth.SetVoice(&voice);
+                        break;
+                    }
+                }
+            }
+        }
+
+        let stream = synth
+            .SynthesizeTextToStreamAsync(&text.into())
+            .map_err(|e| format!("TTS synthesis failed: {}", e))?
+            .get()
+            .map_err(|e| format!("TTS await failed: {}", e))?;
+
+        let size = stream.Size().map_err(|e| format!("Stream size error: {}", e))? as u32;
+        let reader = DataReader::CreateDataReader(&stream.GetInputStreamAt(0).map_err(|e| format!("{}", e))?)
+            .map_err(|e| format!("Reader error: {}", e))?;
+        reader.LoadAsync(size).map_err(|e| format!("{}", e))?.get().map_err(|e| format!("{}", e))?;
+
+        let mut buf = vec![0u8; size as usize];
+        reader.ReadBytes(&mut buf).map_err(|e| format!("Read error: {}", e))?;
+        Ok(buf)
+    }
+}
+
+#[tauri::command]
+async fn speak(text: String, lang: String) -> Result<Vec<u8>, String> {
+    #[cfg(windows)]
+    {
+        tokio::task::spawn_blocking(move || tts::speak_sync(&text, &lang))
+            .await
+            .map_err(|e| format!("Task error: {}", e))?
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (text, lang);
+        Err("TTS not supported on this platform".into())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![ai_call])
+        .invoke_handler(tauri::generate_handler![ai_call, speak])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
