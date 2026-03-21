@@ -165,24 +165,30 @@ async function callAI(
   }
 }
 
-// Pre-load voices at startup (they load async in Chromium/WebView2)
-let cachedVoices: SpeechSynthesisVoice[] = []
-if ('speechSynthesis' in window) {
-  cachedVoices = speechSynthesis.getVoices()
-  speechSynthesis.addEventListener('voiceschanged', () => {
-    cachedVoices = speechSynthesis.getVoices()
-  })
-}
+let currentAudio: HTMLAudioElement | null = null
 
-export function speakText(text: string, lang: string): void {
-  if (!('speechSynthesis' in window)) return
-  speechSynthesis.cancel()
-  const utterance = new SpeechSynthesisUtterance(text)
-  const prefix = lang.split('-')[0]
-  const match = cachedVoices.find(v => v.lang.startsWith(prefix))
-  if (match) utterance.voice = match
-  utterance.lang = lang
-  speechSynthesis.speak(utterance)
+export async function speakText(text: string, lang: string): Promise<void> {
+  // Stop any currently playing audio
+  if (currentAudio) { currentAudio.pause(); currentAudio = null }
+  if ('speechSynthesis' in window) speechSynthesis.cancel()
+
+  // Tauri app — use Edge cloud TTS via Rust backend (WebView2 lacks online voices)
+  if (window.__TAURI_INTERNALS__) {
+    const audioBytes = await invoke<number[]>('speak', { text, lang })
+    const blob = new Blob([new Uint8Array(audioBytes)], { type: 'audio/mpeg' })
+    const url = URL.createObjectURL(blob)
+    currentAudio = new Audio(url)
+    currentAudio.onended = () => { URL.revokeObjectURL(url); currentAudio = null }
+    await currentAudio.play()
+    return
+  }
+
+  // Browser dev — Web Speech API (has online voices in Chrome/Edge)
+  if ('speechSynthesis' in window) {
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = lang
+    speechSynthesis.speak(utterance)
+  }
 }
 
 function extractJSON(text: string): string {
