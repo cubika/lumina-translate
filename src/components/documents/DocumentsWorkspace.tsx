@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { translate, downloadTextFile } from '../../services/ai'
 import { loadSettings, LANGUAGES } from '../../services/settings'
 import { useTranslation } from '../../hooks/useTranslation'
-import { extractPdfText } from '../../services/pdf'
+import { extractPdfText, extractPdfPages } from '../../services/pdf'
 
 interface TranslatedDoc {
   id: number
@@ -52,8 +52,18 @@ export default function DocumentsWorkspace() {
     async (file: File) => {
       const settings = loadSettings()
       const isPdf = file.name.toLowerCase().endsWith('.pdf')
-      const text = isPdf ? await extractPdfText(file) : await file.text()
+
+      // For PDFs, extract pages separately for chunked translation
+      let text: string
+      let pages: string[] | null = null
+      if (isPdf) {
+        pages = await extractPdfPages(file)
+        text = pages.join('\n\n')
+      } else {
+        text = await file.text()
+      }
       if (!text.trim()) return
+
       const docId = Date.now()
       const sizeKB = (file.size / 1024).toFixed(1)
       const sizeLabel = file.size >= 1024 * 1024
@@ -75,13 +85,58 @@ export default function DocumentsWorkspace() {
       setDocs((prev) => [newDoc, ...prev])
 
       try {
-        const result = await translate({
-          text,
-          sourceLang,
-          targetLang,
-          model: settings.selectedModel,
-          providerType: settings.providerType,
-        })
+        // Chunk large texts (~3000 chars per chunk ≈ 1000 tokens, safe for any model)
+        const MAX_CHUNK_CHARS = 8000
+        const needsChunking = text.length > MAX_CHUNK_CHARS
+
+        let result: string
+
+        if (needsChunking) {
+          // Build chunks from pages (PDF) or paragraphs (text)
+          const segments = pages ?? text.split(/\n{2,}/).filter(Boolean)
+          const chunks: string[] = []
+          let current = ''
+
+          for (const segment of segments) {
+            if (current.length + segment.length > MAX_CHUNK_CHARS && current) {
+              chunks.push(current.trim())
+              current = ''
+            }
+            current += (current ? '\n\n' : '') + segment
+          }
+          if (current.trim()) chunks.push(current.trim())
+
+          // Translate each chunk sequentially
+          const translated: string[] = []
+          for (let i = 0; i < chunks.length; i++) {
+            // Update progress
+            setDocs((prev) =>
+              prev.map((d) =>
+                d.id === docId
+                  ? { ...d, translatedText: `Translating chunk ${i + 1}/${chunks.length}...` }
+                  : d,
+              ),
+            )
+
+            const chunkResult = await translate({
+              text: chunks[i],
+              sourceLang,
+              targetLang,
+              model: settings.selectedModel,
+              providerType: settings.providerType,
+            })
+            translated.push(chunkResult)
+          }
+          result = translated.join('\n\n')
+        } else {
+          result = await translate({
+            text,
+            sourceLang,
+            targetLang,
+            model: settings.selectedModel,
+            providerType: settings.providerType,
+          })
+        }
 
         setDocs((prev) =>
           prev.map((d) =>
