@@ -52,6 +52,12 @@ export default function TranslateWorkspace() {
       const { start, end } = sourceParaRanges[idx]
       textarea.focus({ preventScroll: true })
       textarea.setSelectionRange(start, end)
+
+      // Scroll textarea so the selected paragraph is visible
+      // Estimate position: ratio of character offset to total text * scrollable height
+      const ratio = start / (textarea.value.length || 1)
+      const targetScroll = ratio * textarea.scrollHeight - textarea.clientHeight / 3
+      textarea.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' })
     } else {
       const len = textarea.value.length
       textarea.setSelectionRange(len, len)
