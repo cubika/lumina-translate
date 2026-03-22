@@ -178,7 +178,7 @@ export default function TranslateWorkspace() {
                 value={sourceText}
                 onChange={handleSourceChange}
                 placeholder={t('translate.placeholder')}
-                className="flex-1 bg-transparent text-on-surface font-body text-[15px] leading-relaxed p-5 resize-none outline-none placeholder:text-on-surface-variant/30 w-full"
+                className="flex-1 bg-transparent text-on-surface font-reading text-[16px] leading-[1.7] p-5 resize-none outline-none placeholder:text-on-surface-variant/30 w-full"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                     handleTranslate()

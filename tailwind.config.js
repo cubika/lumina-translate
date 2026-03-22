@@ -57,6 +57,7 @@ export default {
         headline: ['Inter', 'system-ui', 'sans-serif'],
         body: ['Inter', 'system-ui', 'sans-serif'],
         label: ['Manrope', 'system-ui', 'sans-serif'],
+        reading: ['Lora', '"Noto Serif SC"', '"Noto Serif JP"', 'Georgia', 'serif'],
       },
       borderRadius: {
         DEFAULT: '0.25rem',
