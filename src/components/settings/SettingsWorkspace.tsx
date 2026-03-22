@@ -136,7 +136,8 @@ export default function SettingsWorkspace() {
 
 
   return (
-    <div className="h-full overflow-y-auto px-8 py-8">
+    <div className="h-full flex flex-col">
+    <div className="flex-1 overflow-y-auto px-8 py-8">
       {/* Save feedback toast */}
       {showSaveToast && (
         <div className="fixed top-14 right-8 z-50 bg-green-500/15 border border-green-500/30 text-green-400 px-5 py-3 rounded-xl text-sm font-label font-semibold flex items-center gap-2 shadow-lg animate-[fadeIn_0.2s_ease-out]">
@@ -146,7 +147,7 @@ export default function SettingsWorkspace() {
       )}
 
       {/* Bento Grid */}
-      <div className="flex flex-col gap-6 pb-20">
+      <div className="flex flex-col gap-6">
         {/* Section: Appearance */}
         <h3 className="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant/60 px-1">
           Appearance
@@ -524,8 +525,10 @@ export default function SettingsWorkspace() {
 
       </div>
 
-      {/* Sticky Footer */}
-      <div className="sticky bottom-0 flex justify-end gap-3 pt-4 pb-8 -mx-8 -mb-8 px-8 bg-surface border-t border-outline-variant/10 z-10">
+      </div>
+
+      {/* Fixed Footer — outside scroll area */}
+      <div className="flex justify-end gap-3 py-4 px-8 bg-surface border-t border-outline-variant/10">
         <button
           onClick={handleReset}
           className="px-6 py-2.5 text-sm font-label font-semibold text-on-surface-variant rounded-xl border border-outline-variant/15 hover:bg-surface-container-high/50 transition-colors"
