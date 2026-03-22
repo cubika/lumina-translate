@@ -1,3 +1,5 @@
+import type { ThemeId } from './themes'
+
 export interface AppSettings {
   selectedModel: string
   providerType: 'openai' | 'anthropic'
@@ -9,6 +11,7 @@ export interface AppSettings {
   translationTone: 'standard' | 'formal' | 'casual' | 'academic' | 'creative'
   simplicity: 'default' | 'simplified' | 'advanced'
   proofreadMode: 'grammar' | 'readability' | 'style'
+  theme: ThemeId
 }
 
 const STORAGE_KEY = 'lumina-settings'
@@ -24,6 +27,7 @@ export const defaultSettings: AppSettings = {
   translationTone: 'standard',
   simplicity: 'default',
   proofreadMode: 'grammar',
+  theme: 'lumina-dark',
 }
 
 export function loadSettings(): AppSettings {

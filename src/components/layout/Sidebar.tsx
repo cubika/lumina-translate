@@ -18,7 +18,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
   const t = useTranslation()
 
   return (
-    <aside className="h-screen w-64 fixed left-0 top-0 z-50 bg-[#111318] border-r border-[#3b494c]/15 flex flex-col py-8 justify-between font-label">
+    <aside className="h-screen w-64 fixed left-0 top-0 z-50 bg-surface border-r border-outline-variant/15 flex flex-col py-8 justify-between font-label">
       <div>
         {/* Brand */}
         <div className="px-6 mb-10 pt-4">

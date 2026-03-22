@@ -286,7 +286,7 @@ export default function ProofreadWorkspace() {
           <button
             onClick={handleProofread}
             disabled={loading || !inputText.trim()}
-            className="flex items-center gap-3 px-8 h-12 bg-gradient-to-br from-[#aec6ff] to-[#0054ba] rounded-2xl text-on-primary-fixed font-bold shadow-2xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-40 disabled:pointer-events-none"
+            className="flex items-center gap-3 px-8 h-12 liquid-gradient rounded-2xl text-on-primary-fixed font-bold shadow-2xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-40 disabled:pointer-events-none"
           >
             {loading ? (
               <>
@@ -337,7 +337,7 @@ export default function ProofreadWorkspace() {
           <div className="flex flex-col gap-4">
             <div className="flex justify-between items-center px-1">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-secondary-fixed-dim shadow-[0_0_8px_rgba(240,180,41,0.5)]" />
+                <span className="w-2 h-2 rounded-full bg-secondary-fixed-dim" />
                 <span className="font-label text-xs font-bold uppercase tracking-widest text-secondary-fixed-dim">
                   {t('proofread.corrected')}
                 </span>
@@ -402,7 +402,7 @@ export default function ProofreadWorkspace() {
             </button>
             <button
               onClick={handleExport}
-              className="flex items-center gap-3 px-8 h-12 bg-gradient-to-br from-[#aec6ff] to-[#0054ba] rounded-2xl text-on-primary-fixed font-bold shadow-2xl hover:scale-[1.02] active:scale-95 transition-all"
+              className="flex items-center gap-3 px-8 h-12 liquid-gradient rounded-2xl text-on-primary-fixed font-bold shadow-2xl hover:scale-[1.02] active:scale-95 transition-all"
             >
               <span className="material-symbols-outlined" style={{ fontVariationSettings: "'wght' 600" }}>
                 download
@@ -414,7 +414,7 @@ export default function ProofreadWorkspace() {
       </div>
 
       {/* Right Insights Sidebar */}
-      <aside className="w-[380px] h-full flex flex-col border-l border-[#3b494c]/15 bg-surface-container-low/30 p-8 gap-6 overflow-hidden flex-shrink-0">
+      <aside className="w-[380px] h-full flex flex-col border-l border-outline-variant/15 bg-surface-container-low/30 p-8 gap-6 overflow-hidden flex-shrink-0">
         <div className="flex items-center justify-between">
           <h3 className="font-headline font-bold text-lg">{t('proofread.insights')}</h3>
         </div>
