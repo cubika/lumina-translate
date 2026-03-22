@@ -286,7 +286,7 @@ export default function ProofreadWorkspace() {
           <button
             onClick={handleProofread}
             disabled={loading || !inputText.trim()}
-            className="flex items-center gap-3 px-8 h-12 liquid-gradient rounded-2xl text-on-primary-fixed font-bold shadow-2xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-40 disabled:pointer-events-none"
+            className="flex items-center gap-3 px-8 h-12 liquid-gradient rounded-2xl text-white font-bold shadow-2xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-40 disabled:pointer-events-none"
           >
             {loading ? (
               <>
@@ -402,7 +402,7 @@ export default function ProofreadWorkspace() {
             </button>
             <button
               onClick={handleExport}
-              className="flex items-center gap-3 px-8 h-12 liquid-gradient rounded-2xl text-on-primary-fixed font-bold shadow-2xl hover:scale-[1.02] active:scale-95 transition-all"
+              className="flex items-center gap-3 px-8 h-12 liquid-gradient rounded-2xl text-white font-bold shadow-2xl hover:scale-[1.02] active:scale-95 transition-all"
             >
               <span className="material-symbols-outlined" style={{ fontVariationSettings: "'wght' 600" }}>
                 download
