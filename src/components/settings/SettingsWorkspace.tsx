@@ -3,6 +3,7 @@ import { useSettings } from '../../hooks/useSettings'
 import { useTranslation } from '../../hooks/useTranslation'
 import { AI_PROVIDERS, testConnection } from '../../services/ai'
 import { defaultSettings, LANGUAGES } from '../../services/settings'
+import { themeMetas, applyTheme, type ThemeId } from '../../services/themes'
 
 const openaiModels = AI_PROVIDERS.filter((p) => p.type === 'openai')
 const anthropicModels = AI_PROVIDERS.filter((p) => p.type === 'anthropic')
@@ -55,6 +56,7 @@ export default function SettingsWorkspace() {
   const { settings, updateSettings } = useSettings()
   const t = useTranslation()
 
+  const [theme, setTheme] = useState<ThemeId>(settings.theme)
   const [selectedModel, setSelectedModel] = useState(settings.selectedModel)
   const [providerType, setProviderType] = useState(settings.providerType)
   const [openaiApiKey, setOpenaiApiKey] = useState(settings.openaiApiKey)
@@ -86,6 +88,7 @@ export default function SettingsWorkspace() {
       anthropicApiKey !== settings.anthropicApiKey
 
     updateSettings({
+      theme,
       selectedModel,
       providerType,
       openaiApiKey,
@@ -116,6 +119,8 @@ export default function SettingsWorkspace() {
   }
 
   function handleReset() {
+    setTheme(defaultSettings.theme)
+    applyTheme(defaultSettings.theme)
     setSelectedModel(defaultSettings.selectedModel)
     setProviderType(defaultSettings.providerType)
     setOpenaiApiKey(defaultSettings.openaiApiKey)
@@ -131,7 +136,8 @@ export default function SettingsWorkspace() {
 
 
   return (
-    <div className="h-full overflow-y-auto px-8 py-8">
+    <div className="h-full flex flex-col">
+    <div className="flex-1 overflow-y-auto px-8 py-8">
       {/* Save feedback toast */}
       {showSaveToast && (
         <div className="fixed top-14 right-8 z-50 bg-green-500/15 border border-green-500/30 text-green-400 px-5 py-3 rounded-xl text-sm font-label font-semibold flex items-center gap-2 shadow-lg animate-[fadeIn_0.2s_ease-out]">
@@ -142,8 +148,56 @@ export default function SettingsWorkspace() {
 
       {/* Bento Grid */}
       <div className="flex flex-col gap-6">
-        {/* Section: Preferences */}
+        {/* Section: Appearance */}
         <h3 className="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant/60 px-1">
+          Appearance
+        </h3>
+        <div className="bg-surface-container-low rounded-[24px] border border-outline-variant/15 p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <span className="material-symbols-outlined text-primary-fixed-dim text-2xl">palette</span>
+            <div>
+              <h2 className="text-lg font-headline font-bold text-on-surface">Theme</h2>
+              <p className="text-xs text-on-surface-variant/50">Choose your color scheme</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-3">
+            {themeMetas.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => { setTheme(t.id); applyTheme(t.id) }}
+                className={`flex flex-col items-center gap-3 p-4 rounded-2xl transition-all duration-150 cursor-pointer ${
+                  theme === t.id
+                    ? 'bg-primary-fixed-dim/10 border-2 border-primary-fixed-dim/50'
+                    : 'border-2 border-transparent hover:bg-surface-container-high/50'
+                }`}
+              >
+                {/* Color swatches */}
+                <div className="flex gap-1.5">
+                  {t.swatches.map((color, i) => (
+                    <div
+                      key={i}
+                      className="w-5 h-5 rounded-full border border-outline-variant/20"
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+                <div className="text-center">
+                  <span className={`text-xs font-label font-bold block ${
+                    theme === t.id ? 'text-primary-fixed-dim' : 'text-on-surface'
+                  }`}>
+                    {t.name}
+                  </span>
+                  <span className="text-[10px] text-on-surface-variant/50 font-label uppercase tracking-wider">
+                    {t.type}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Section: Preferences */}
+        <h3 className="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant/60 px-1 mt-4">
           Preferences
         </h3>
         <div className="flex flex-col gap-6">
@@ -471,8 +525,10 @@ export default function SettingsWorkspace() {
 
       </div>
 
-      {/* Footer */}
-      <div className="flex justify-end gap-3 mt-8 pb-4">
+      </div>
+
+      {/* Fixed Footer — outside scroll area */}
+      <div className="flex justify-end gap-3 py-4 px-8 bg-surface border-t border-outline-variant/10">
         <button
           onClick={handleReset}
           className="px-6 py-2.5 text-sm font-label font-semibold text-on-surface-variant rounded-xl border border-outline-variant/15 hover:bg-surface-container-high/50 transition-colors"

@@ -3,6 +3,57 @@
 @tailwind utilities;
 
 @layer base {
+  /* Default theme: Lumina Dark (overridden at runtime by applyTheme) */
+  :root {
+    --color-surface: 17 19 24;
+    --color-surface-dim: 17 19 24;
+    --color-surface-bright: 55 57 62;
+    --color-surface-container-lowest: 12 14 18;
+    --color-surface-container-low: 26 28 32;
+    --color-surface-container: 30 32 36;
+    --color-surface-container-high: 40 42 46;
+    --color-surface-container-highest: 51 53 57;
+    --color-surface-variant: 51 53 57;
+    --color-background: 17 19 24;
+    --color-on-surface: 226 226 232;
+    --color-on-surface-variant: 186 201 204;
+    --color-on-background: 226 226 232;
+    --color-outline: 132 147 150;
+    --color-outline-variant: 59 73 76;
+    --color-inverse-surface: 226 226 232;
+    --color-inverse-on-surface: 47 48 53;
+    --color-primary: 231 236 255;
+    --color-primary-fixed: 216 226 255;
+    --color-primary-fixed-dim: 174 198 255;
+    --color-primary-container: 190 208 255;
+    --color-on-primary: 0 46 107;
+    --color-on-primary-fixed: 0 26 67;
+    --color-on-primary-fixed-variant: 0 67 151;
+    --color-on-primary-container: 0 84 186;
+    --color-surface-tint: 174 198 255;
+    --color-inverse-primary: 0 89 197;
+    --color-secondary: 255 243 214;
+    --color-secondary-fixed: 255 224 160;
+    --color-secondary-fixed-dim: 240 180 41;
+    --color-secondary-container: 255 201 66;
+    --color-on-secondary: 61 40 0;
+    --color-on-secondary-fixed: 41 26 0;
+    --color-on-secondary-fixed-variant: 92 64 0;
+    --color-on-secondary-container: 122 85 0;
+    --color-tertiary: 242 233 255;
+    --color-tertiary-fixed: 233 221 255;
+    --color-tertiary-fixed-dim: 209 188 255;
+    --color-tertiary-container: 217 200 255;
+    --color-on-tertiary: 60 0 144;
+    --color-on-tertiary-fixed: 35 0 91;
+    --color-on-tertiary-fixed-variant: 87 0 201;
+    --color-on-tertiary-container: 108 0 247;
+    --color-error: 255 180 171;
+    --color-error-container: 147 0 10;
+    --color-on-error: 105 0 5;
+    --color-on-error-container: 255 218 214;
+  }
+
   body {
     -webkit-app-region: no-drag;
   }
@@ -13,7 +64,7 @@
 
   /* Focus-visible ring for keyboard navigation */
   *:focus-visible {
-    outline: 2px solid #aec6ff;
+    outline: 2px solid rgb(var(--color-primary-fixed-dim));
     outline-offset: 2px;
     border-radius: 4px;
   }
@@ -21,36 +72,36 @@
 
 @layer components {
   .glass-panel {
-    background: rgba(51, 53, 57, 0.4);
+    background: rgb(var(--color-surface-container-highest) / 0.4);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
   }
 
   .glass-panel-elevated {
-    background: rgba(51, 53, 57, 0.4);
+    background: rgb(var(--color-surface-container-highest) / 0.4);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border-top: 1px solid rgba(255, 255, 255, 0.03);
   }
 
   .glass-panel-inset {
-    background: rgba(20, 22, 26, 0.5);
+    background: rgb(var(--color-surface-container-lowest) / 0.5);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
   }
 
   .liquid-gradient {
-    background: linear-gradient(135deg, #aec6ff 0%, #0054ba 100%);
+    background: linear-gradient(135deg, rgb(var(--color-primary-fixed-dim)), rgb(var(--color-on-primary-container)));
   }
 
   .liquid-glass {
-    background: rgba(40, 42, 46, 0.4);
+    background: rgb(var(--color-surface-container-high) / 0.4);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
   }
 
   .ghost-border {
-    outline: 1px solid rgba(59, 73, 76, 0.15);
+    outline: 1px solid rgb(var(--color-outline-variant) / 0.15);
   }
 }
 
@@ -78,17 +129,17 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #111318;
+  background: rgb(var(--color-surface));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #333539;
+  background: rgb(var(--color-surface-container-highest));
   border-radius: 10px;
   transition: background 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #4a4c50;
+  background: rgb(var(--color-surface-bright));
 }
 
 .material-symbols-outlined {

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { loadSettings } from './services/settings'
+import { applyTheme } from './services/themes'
 import Sidebar from './components/layout/Sidebar'
 import TopBar from './components/layout/TopBar'
 import ErrorBoundary from './components/ui/ErrorBoundary'
@@ -22,6 +24,14 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(WORKSPACE_KEY, activeWorkspace)
   }, [activeWorkspace])
+
+  // Apply saved theme on mount + listen for changes
+  useEffect(() => {
+    applyTheme(loadSettings().theme)
+    const onSettingsChanged = () => applyTheme(loadSettings().theme)
+    window.addEventListener('settings-changed', onSettingsChanged)
+    return () => window.removeEventListener('settings-changed', onSettingsChanged)
+  }, [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

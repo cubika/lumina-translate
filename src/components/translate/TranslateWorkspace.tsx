@@ -271,29 +271,27 @@ export default function TranslateWorkspace() {
         </div>
       </div>
 
-      {/* Bottom floating glass bar */}
-      <div className="fixed bottom-6 left-64 right-0 flex justify-center z-40 pointer-events-none px-8">
-        <div className="glass-panel rounded-2xl border border-outline-variant/10 px-4 py-3 flex items-center gap-3 pointer-events-auto shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-          <button
-            onClick={handleTranslate}
-            disabled={!sourceText.trim() || isTranslating || sourceLang === targetLang}
-            className="liquid-gradient px-8 py-2.5 rounded-xl text-white font-label font-bold text-sm tracking-wide shadow-lg hover:shadow-xl hover:brightness-110 transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:brightness-100 flex items-center gap-2"
-          >
-            {isTranslating ? (
-              <>
-                <span className="material-symbols-outlined animate-spin text-base">
-                  progress_activity
-                </span>
-                {t('translate.translating')}
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-base">translate</span>
-                {t('translate.translate')}
-              </>
-            )}
-          </button>
-        </div>
+      {/* Floating translate button */}
+      <div className="fixed bottom-6 left-64 right-0 flex justify-center z-40 pointer-events-none">
+        <button
+          onClick={handleTranslate}
+          disabled={!sourceText.trim() || isTranslating || sourceLang === targetLang}
+          className="liquid-gradient px-10 py-3 rounded-2xl text-white font-label font-bold text-sm tracking-wide shadow-[0_8px_24px_rgba(0,0,0,0.25)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.35)] hover:brightness-110 transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:brightness-100 disabled:hover:shadow-[0_8px_24px_rgba(0,0,0,0.25)] flex items-center gap-2 pointer-events-auto"
+        >
+          {isTranslating ? (
+            <>
+              <span className="material-symbols-outlined animate-spin text-base">
+                progress_activity
+              </span>
+              {t('translate.translating')}
+            </>
+          ) : (
+            <>
+              <span className="material-symbols-outlined text-base">translate</span>
+              {t('translate.translate')}
+            </>
+          )}
+        </button>
       </div>
     </div>
   )
