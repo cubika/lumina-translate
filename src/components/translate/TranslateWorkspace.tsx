@@ -273,7 +273,7 @@ export default function TranslateWorkspace() {
 
       {/* Bottom floating glass bar */}
       <div className="fixed bottom-6 left-64 right-0 flex justify-center z-40 pointer-events-none px-8">
-        <div className="glass-panel rounded-2xl border border-outline-variant/10 px-4 py-3 flex items-center gap-3 pointer-events-auto shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+        <div className="bg-surface-container-low rounded-2xl border border-outline-variant/15 px-4 py-3 flex items-center gap-3 pointer-events-auto shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
           <button
             onClick={handleTranslate}
             disabled={!sourceText.trim() || isTranslating || sourceLang === targetLang}
