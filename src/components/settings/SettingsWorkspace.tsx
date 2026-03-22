@@ -525,7 +525,7 @@ export default function SettingsWorkspace() {
       </div>
 
       {/* Sticky Footer */}
-      <div className="sticky bottom-0 flex justify-end gap-3 py-4 -mx-8 px-8 bg-surface/90 backdrop-blur-xl border-t border-outline-variant/10 z-10">
+      <div className="sticky bottom-0 flex justify-end gap-3 py-4 -mx-8 px-8 bg-surface border-t border-outline-variant/10 z-10">
         <button
           onClick={handleReset}
           className="px-6 py-2.5 text-sm font-label font-semibold text-on-surface-variant rounded-xl border border-outline-variant/15 hover:bg-surface-container-high/50 transition-colors"
