@@ -22,8 +22,8 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
       <div>
         {/* Brand */}
         <div className="px-6 mb-10 pt-4">
-          <h1 className="font-black text-primary-fixed-dim tracking-tighter text-2xl">{t('app.name')}</h1>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-on-surface/40 mt-1">{t('app.tagline')}</p>
+          <h1 className="font-black text-primary-fixed-dim tracking-tighter text-2xl" style={{ textShadow: '0 0 40px rgba(174,198,255,0.3), 0 0 80px rgba(174,198,255,0.1)' }}>{t('app.name')}</h1>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/50 mt-1">{t('app.tagline')}</p>
         </div>
 
         {/* Nav */}
@@ -51,7 +51,7 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
       </div>
 
       {/* Bottom */}
-      <div className="px-4">
+      <div className="px-6">
         <button
           onClick={() => onNavigate('settings')}
           className={`w-full py-3 px-2 flex items-center gap-3 transition-colors duration-200 cursor-pointer rounded-lg ${

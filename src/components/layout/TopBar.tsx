@@ -18,7 +18,7 @@ export default function TopBar({ workspace }: TopBarProps) {
   const t = useTranslation()
 
   return (
-    <header className="bg-surface-container-low/40 backdrop-blur-3xl shadow-[0px_24px_48px_rgba(0,0,0,0.4)] no-drag">
+    <header className="bg-surface/80 backdrop-blur-3xl no-drag">
       <div className="flex justify-between items-center px-8 h-16 w-full">
         <div className="flex items-center gap-8">
           <span className="font-headline font-semibold tracking-tight text-lg text-primary-fixed-dim">

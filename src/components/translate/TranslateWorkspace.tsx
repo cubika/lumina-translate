@@ -129,6 +129,7 @@ export default function TranslateWorkspace() {
                 disabled={isTranslating}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-highest/50 transition-all duration-200 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed"
                 title={t('translate.swap')}
+                aria-label={t('translate.swap')}
               >
                 <span
                   className="material-symbols-outlined text-on-surface-variant text-lg transition-transform duration-300"
@@ -143,6 +144,7 @@ export default function TranslateWorkspace() {
                 onClick={handleClearSource}
                 className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-surface-container-highest/50 transition-all duration-200 active:scale-90"
                 title={t('translate.clear')}
+                aria-label={t('translate.clear')}
               >
                 <span className="material-symbols-outlined text-on-surface-variant/60 text-base">
                   close
@@ -178,7 +180,7 @@ export default function TranslateWorkspace() {
                 value={sourceText}
                 onChange={handleSourceChange}
                 placeholder={t('translate.placeholder')}
-                className="flex-1 bg-transparent text-on-surface font-body text-[15px] leading-relaxed p-5 resize-none outline-none placeholder:text-on-surface-variant/30 w-full"
+                className="flex-1 bg-transparent text-on-surface font-reading text-[16px] leading-[1.7] p-5 resize-none outline-none placeholder:text-on-surface-variant/40 w-full"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                     handleTranslate()
@@ -219,6 +221,7 @@ export default function TranslateWorkspace() {
                 disabled={!translatedText}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-highest/50 transition-all duration-200 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed"
                 title={t('translate.listen')}
+                aria-label={t('translate.listen')}
               >
                 <span className="material-symbols-outlined text-on-surface-variant text-lg">
                   volume_up
@@ -229,6 +232,7 @@ export default function TranslateWorkspace() {
                 disabled={!translatedText}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-highest/50 transition-all duration-200 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed"
                 title={copied ? t('translate.copied') : t('translate.copyTranslation')}
+                aria-label={copied ? t('translate.copied') : t('translate.copyTranslation')}
               >
                 <span className="material-symbols-outlined text-on-surface-variant text-lg">
                   {copied ? 'check' : 'content_copy'}
