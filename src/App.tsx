@@ -74,11 +74,11 @@ export default function App() {
         <TopBar workspace={activeWorkspace} />
         <div className="flex-1 overflow-hidden">
           {/* Use display:none instead of unmount to preserve workspace state */}
-          <div className={`h-full ${activeWorkspace !== 'translate' ? 'hidden' : ''}`}><ErrorBoundary><TranslateWorkspace /></ErrorBoundary></div>
-          <div className={`h-full ${activeWorkspace !== 'proofread' ? 'hidden' : ''}`}><ErrorBoundary><ProofreadWorkspace /></ErrorBoundary></div>
-          <div className={`h-full ${activeWorkspace !== 'dictionary' ? 'hidden' : ''}`}><ErrorBoundary><DictionaryWorkspace /></ErrorBoundary></div>
-          <div className={`h-full ${activeWorkspace !== 'documents' ? 'hidden' : ''}`}><ErrorBoundary><DocumentsWorkspace /></ErrorBoundary></div>
-          <div className={`h-full ${activeWorkspace !== 'settings' ? 'hidden' : ''}`}><ErrorBoundary><SettingsWorkspace /></ErrorBoundary></div>
+          <div className={`h-full ${activeWorkspace !== 'translate' ? 'hidden' : 'animate-fadeIn'}`}><ErrorBoundary><TranslateWorkspace /></ErrorBoundary></div>
+          <div className={`h-full ${activeWorkspace !== 'proofread' ? 'hidden' : 'animate-fadeIn'}`}><ErrorBoundary><ProofreadWorkspace /></ErrorBoundary></div>
+          <div className={`h-full ${activeWorkspace !== 'dictionary' ? 'hidden' : 'animate-fadeIn'}`}><ErrorBoundary><DictionaryWorkspace /></ErrorBoundary></div>
+          <div className={`h-full ${activeWorkspace !== 'documents' ? 'hidden' : 'animate-fadeIn'}`}><ErrorBoundary><DocumentsWorkspace /></ErrorBoundary></div>
+          <div className={`h-full ${activeWorkspace !== 'settings' ? 'hidden' : 'animate-fadeIn'}`}><ErrorBoundary><SettingsWorkspace /></ErrorBoundary></div>
         </div>
       </main>
     </div>

@@ -142,6 +142,10 @@ export default function SettingsWorkspace() {
 
       {/* Bento Grid */}
       <div className="flex flex-col gap-6">
+        {/* Section: Preferences */}
+        <h3 className="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant/60 px-1">
+          Preferences
+        </h3>
         <div className="flex flex-col gap-6">
           {/* Native Language */}
           <div className="bg-surface-container-low rounded-[24px] border border-outline-variant/15 p-6">
@@ -288,6 +292,13 @@ export default function SettingsWorkspace() {
             </div>
           </div>
 
+        </div>
+
+        {/* Section: AI Engine */}
+        <h3 className="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant/60 px-1 mt-4">
+          AI Engine
+        </h3>
+        <div className="flex flex-col gap-6">
           {/* AI Engine Panel — stacked sections with flex-wrap grids */}
           <div className="bg-surface-container-low rounded-[24px] border border-outline-variant/15 p-6">
             <div className="flex items-center gap-3 mb-5">
@@ -392,7 +403,7 @@ export default function SettingsWorkspace() {
                         value={openaiApiKey}
                         onChange={(e) => setOpenaiApiKey(e.target.value)}
                         placeholder="sk-..."
-                        className="w-full bg-surface-container rounded-xl border border-outline-variant/15 px-4 py-3 pr-12 text-sm text-on-surface placeholder:text-on-surface-variant/30 outline-none focus:border-primary-fixed-dim/50 transition-colors"
+                        className="w-full bg-surface-container rounded-xl border border-outline-variant/15 px-4 py-3 pr-12 text-sm text-on-surface placeholder:text-on-surface-variant/40 outline-none focus:border-primary-fixed-dim/50 transition-colors"
                       />
                       <button
                         type="button"
@@ -417,7 +428,7 @@ export default function SettingsWorkspace() {
                       value={openaiBaseUrl}
                       onChange={(e) => setOpenaiBaseUrl(e.target.value)}
                       placeholder="https://api.openai.com/v1"
-                      className="w-full bg-surface-container rounded-xl border border-outline-variant/15 px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/30 outline-none focus:border-primary-fixed-dim/50 transition-colors"
+                      className="w-full bg-surface-container rounded-xl border border-outline-variant/15 px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 outline-none focus:border-primary-fixed-dim/50 transition-colors"
                     />
                   </div>
                 </>
@@ -440,7 +451,7 @@ export default function SettingsWorkspace() {
                       value={anthropicApiKey}
                       onChange={(e) => setAnthropicApiKey(e.target.value)}
                       placeholder="sk-ant-..."
-                      className="w-full bg-surface-container rounded-xl border border-outline-variant/15 px-4 py-3 pr-12 text-sm text-on-surface placeholder:text-on-surface-variant/30 outline-none focus:border-primary-fixed-dim/50 transition-colors"
+                      className="w-full bg-surface-container rounded-xl border border-outline-variant/15 px-4 py-3 pr-12 text-sm text-on-surface placeholder:text-on-surface-variant/40 outline-none focus:border-primary-fixed-dim/50 transition-colors"
                     />
                     <button
                       type="button"

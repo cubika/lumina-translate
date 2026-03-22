@@ -337,7 +337,7 @@ export default function ProofreadWorkspace() {
           <div className="flex flex-col gap-4">
             <div className="flex justify-between items-center px-1">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-secondary-fixed-dim shadow-[0_0_8px_rgba(0,218,243,0.5)]" />
+                <span className="w-2 h-2 rounded-full bg-secondary-fixed-dim shadow-[0_0_8px_rgba(240,180,41,0.5)]" />
                 <span className="font-label text-xs font-bold uppercase tracking-widest text-secondary-fixed-dim">
                   {t('proofread.corrected')}
                 </span>
