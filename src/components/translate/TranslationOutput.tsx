@@ -1,4 +1,5 @@
-import { memo, useState, useMemo, useCallback } from 'react'
+import { memo, useState, useRef, useMemo, useCallback, useEffect } from 'react'
+import PretextRenderer from '../shared/PretextRenderer'
 
 interface TranslationOutputProps {
   translatedText: string
@@ -51,48 +52,80 @@ const Paragraph = memo(function Paragraph({
 
 export { Paragraph }
 
+/** Compute character ranges for each paragraph in the original text. */
+function computeParagraphRanges(text: string): { start: number; end: number }[] {
+  const paras = splitParagraphs(text)
+  const ranges: { start: number; end: number }[] = []
+  let searchFrom = 0
+  for (const para of paras) {
+    const idx = text.indexOf(para, searchFrom)
+    if (idx !== -1) {
+      ranges.push({ start: idx, end: idx + para.length })
+      searchFrom = idx + para.length
+    }
+  }
+  return ranges
+}
+
+const TARGET_LINE_HEIGHT = Math.round(16 * 1.85) // 29.6 → 30px
+
 export default memo(function TranslationOutput({ translatedText, isTranslating, onHoverIndex, highlightIndex }: TranslationOutputProps) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
-  const targetParas = useMemo(
-    () => isTranslating ? [] : splitParagraphs(translatedText),
+  const fontRef = useRef<HTMLDivElement>(null)
+  const [resolvedFont, setResolvedFont] = useState('')
+
+  // Resolve the actual CSS font from the wrapper element
+  useEffect(() => {
+    const el = fontRef.current
+    if (!el) return
+    const cs = getComputedStyle(el)
+    setResolvedFont(`${cs.fontSize} ${cs.fontFamily}`)
+  }, [translatedText])
+
+  const paragraphRanges = useMemo(
+    () => (!isTranslating && translatedText) ? computeParagraphRanges(translatedText) : [],
     [translatedText, isTranslating]
   )
 
-  const handleEnter = useCallback((i: number) => {
+  const handleParagraphHover = useCallback((i: number) => {
     setHoveredIdx(i)
     onHoverIndex(i)
   }, [onHoverIndex])
 
-  const handleLeave = useCallback(() => {
+  const handleParagraphLeave = useCallback(() => {
     setHoveredIdx(null)
   }, [])
 
-  if (isTranslating || targetParas.length <= 1) {
+  const activeIdx = hoveredIdx ?? highlightIndex
+
+  // During streaming: simple <p> with cursor animation
+  if (isTranslating) {
     return (
       <p className="text-on-surface font-reading text-[16px] leading-[1.85] whitespace-pre-wrap">
         {translatedText}
-        {isTranslating && (
-          <span className="inline-block w-0.5 h-4 bg-secondary-fixed-dim animate-pulse ml-0.5 align-text-bottom" />
-        )}
+        <span className="inline-block w-0.5 h-4 bg-secondary-fixed-dim animate-pulse ml-0.5 align-text-bottom" />
       </p>
     )
   }
 
-  const activeIdx = hoveredIdx ?? highlightIndex
-
+  // After translation complete: PretextRenderer with virtual scrolling
   return (
-    <div className="flex flex-col gap-3">
-      {targetParas.map((para, i) => (
-        <Paragraph
-          key={i}
-          text={para}
-          index={i}
-          isActive={activeIdx === i}
-          onEnter={handleEnter}
-          onLeave={handleLeave}
-          variant="target"
+    <div ref={fontRef} className="h-full font-reading text-[16px] text-on-surface">
+      {resolvedFont ? (
+        <PretextRenderer
+          text={translatedText}
+          font={resolvedFont}
+          lineHeight={TARGET_LINE_HEIGHT}
+          className="h-full"
+          paragraphRanges={paragraphRanges}
+          onParagraphHover={handleParagraphHover}
+          onParagraphLeave={handleParagraphLeave}
+          highlightParagraphIndex={activeIdx}
+          paragraphHighlightClass="bg-secondary-fixed-dim/15"
         />
-      ))}
+      ) : (
+        <p className="leading-[1.85] whitespace-pre-wrap">{translatedText}</p>
+      )}
     </div>
   )
 })
