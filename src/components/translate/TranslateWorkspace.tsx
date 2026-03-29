@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { translateStream, speakText } from '../../services/ai'
 import { loadSettings, LANGUAGES, langToBcp47 } from '../../services/settings'
 import { useTranslation } from '../../hooks/useTranslation'
+import { reformatPastedText } from '../../utils/textFormat'
 import TranslationOutput, { splitParagraphs, Paragraph } from './TranslationOutput'
 
 export default function TranslateWorkspace() {
@@ -45,6 +46,21 @@ export default function TranslateWorkspace() {
   const handleSourceChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setSourceText(e.target.value)
   }, [])
+
+  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    e.preventDefault()
+    const raw = e.clipboardData.getData('text/plain')
+    const cleaned = reformatPastedText(raw)
+    const textarea = e.currentTarget
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const before = sourceText.slice(0, start)
+    const after = sourceText.slice(end)
+    setSourceText(before + cleaned + after)
+    requestAnimationFrame(() => {
+      textarea.selectionStart = textarea.selectionEnd = start + cleaned.length
+    })
+  }, [sourceText])
 
 
   const handleTranslate = useCallback(async () => {
@@ -181,6 +197,7 @@ export default function TranslateWorkspace() {
                 onChange={handleSourceChange}
                 placeholder={t('translate.placeholder')}
                 className="flex-1 bg-transparent text-on-surface font-reading text-[16px] leading-[1.7] p-5 resize-none outline-none placeholder:text-on-surface-variant/40 w-full"
+                onPaste={handlePaste}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                     handleTranslate()
