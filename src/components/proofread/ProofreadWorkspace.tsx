@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { proofread, downloadTextFile } from '../../services/ai'
 import { loadSettings } from '../../services/settings'
 import { useTranslation } from '../../hooks/useTranslation'
+import { reformatPastedText } from '../../utils/textFormat'
 
 interface Issue {
   type: string
@@ -182,6 +183,22 @@ export default function ProofreadWorkspace() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [hasResult, setHasResult] = useState(false)
+  const proofreadTextareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    e.preventDefault()
+    const raw = e.clipboardData.getData('text/plain')
+    const cleaned = reformatPastedText(raw)
+    const textarea = e.currentTarget
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const before = inputText.slice(0, start)
+    const after = inputText.slice(end)
+    setInputText(before + cleaned + after)
+    requestAnimationFrame(() => {
+      textarea.selectionStart = textarea.selectionEnd = start + cleaned.length
+    })
+  }, [inputText])
 
   const wordCount = useCallback((text: string) => {
     return text.trim() ? text.trim().split(/\s+/).length : 0
@@ -269,10 +286,12 @@ export default function ProofreadWorkspace() {
 
         <div className="flex-1 glass-panel rounded-[2rem] p-10 border border-outline-variant/10 shadow-inner flex flex-col">
           <textarea
+            ref={proofreadTextareaRef}
             className="flex-1 w-full bg-transparent border-none outline-none resize-none text-lg leading-[1.8] text-on-surface-variant/90 placeholder:text-on-surface-variant/30"
             placeholder={t('proofread.placeholder')}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
+            onPaste={handlePaste}
           />
         </div>
 
