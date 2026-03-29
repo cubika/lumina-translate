@@ -3,7 +3,8 @@ import { translateStream, speakText } from '../../services/ai'
 import { loadSettings, LANGUAGES, langToBcp47 } from '../../services/settings'
 import { useTranslation } from '../../hooks/useTranslation'
 import { reformatPastedText } from '../../utils/textFormat'
-import TranslationOutput, { splitParagraphs, Paragraph } from './TranslationOutput'
+import PretextRenderer from '../shared/PretextRenderer'
+import TranslationOutput, { splitParagraphs } from './TranslationOutput'
 
 export default function TranslateWorkspace() {
   const t = useTranslation()
@@ -17,8 +18,32 @@ export default function TranslateWorkspace() {
   const [hoveredSourceIdx, setHoveredSourceIdx] = useState<number | null>(null)
   const [isEditingSource, setIsEditingSource] = useState(true)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const sourceFontRef = useRef<HTMLDivElement>(null)
+  const [sourceFont, setSourceFont] = useState('')
 
   const sourceParas = useMemo(() => splitParagraphs(sourceText), [sourceText])
+
+  const sourceParagraphRanges = useMemo(() => {
+    const paras = sourceParas
+    const ranges: { start: number; end: number }[] = []
+    let searchFrom = 0
+    for (const para of paras) {
+      const idx = sourceText.indexOf(para, searchFrom)
+      if (idx !== -1) {
+        ranges.push({ start: idx, end: idx + para.length })
+        searchFrom = idx + para.length
+      }
+    }
+    return ranges
+  }, [sourceText, sourceParas])
+
+  // Resolve source font from the DOM
+  useEffect(() => {
+    const el = sourceFontRef.current
+    if (!el) return
+    const cs = getComputedStyle(el)
+    setSourceFont(`${cs.fontSize} ${cs.fontFamily}`)
+  }, [isEditingSource])
 
   // Switch to view mode when translation completes, edit mode when text changes
   useEffect(() => {
@@ -169,26 +194,28 @@ export default function TranslateWorkspace() {
             )}
           </div>
           <div className="glass-panel rounded-2xl border border-outline-variant/10 flex-1 flex flex-col min-h-[260px]">
-            {/* View mode: hoverable paragraphs. Click to edit. */}
+            {/* View mode: PretextRenderer. Click to edit. */}
             {!isEditingSource && translatedText && sourceParas.length > 1 ? (
               <div
-                className="flex-1 p-5 overflow-y-auto min-h-0 scroll-smooth cursor-text"
+                ref={sourceFontRef}
+                className="flex-1 p-5 min-h-0 cursor-text font-reading text-[16px] text-on-surface"
                 onClick={() => { setIsEditingSource(true); setTimeout(() => textareaRef.current?.focus(), 0) }}
-                onMouseLeave={handleHoverParaLeave}
               >
-                <div className="flex flex-col gap-3">
-                  {sourceParas.map((para, i) => (
-                    <Paragraph
-                      key={i}
-                      text={para}
-                      index={i}
-                      isActive={hoveredSourceIdx === i}
-                      onEnter={handleHoverPara}
-                      onLeave={handleHoverParaLeave}
-                      variant="source"
-                    />
-                  ))}
-                </div>
+                {sourceFont ? (
+                  <PretextRenderer
+                    text={sourceText}
+                    font={sourceFont}
+                    lineHeight={Math.round(16 * 1.7)}
+                    className="h-full"
+                    paragraphRanges={sourceParagraphRanges}
+                    onParagraphHover={handleHoverPara}
+                    onParagraphLeave={handleHoverParaLeave}
+                    highlightParagraphIndex={hoveredSourceIdx}
+                    paragraphHighlightClass="bg-primary-fixed-dim/15"
+                  />
+                ) : (
+                  <p className="leading-[1.7] whitespace-pre-wrap">{sourceText}</p>
+                )}
               </div>
             ) : (
               <textarea
