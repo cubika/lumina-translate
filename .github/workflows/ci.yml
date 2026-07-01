@@ -5,6 +5,10 @@ on:
     branches: [master]
   pull_request:
 
+# Minimal token permissions; jobs only read repository contents.
+permissions:
+  contents: read
+
 # Cancel superseded runs for the same ref to save CI minutes.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
