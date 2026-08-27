@@ -1,6 +1,6 @@
 # Lumina Translate
 
-> AI-powered desktop translation studio — translate, proofread, and look up words in 24 languages.
+> AI-powered desktop translation studio — translate, proofread, and analyze language in 24 languages.
 
 Built with **Tauri v2 + React + TypeScript + Vite + Tailwind CSS**.
 
@@ -15,7 +15,7 @@ Built with **Tauri v2 + React + TypeScript + Vite + Tailwind CSS**.
 - **Streaming Translation** — See tokens appear in real-time as the AI translates
 - **Paragraph Alignment** — Hover a translated paragraph to highlight the corresponding source text
 - **PDF Support** — Translate entire PDF documents with chunked parallel processing
-- **Smart Dictionary** — Multi-meaning definitions with register tags, usage notes, frequency indicators, example sentences with translations, and etymology
+- **Language Analysis** — Dictionary details for single words plus contextual explanations of phrases, grammar, keywords, and complete passages
 - **Proofread Modes** — Grammar-only fix, readability improvement, or full style revision
 - **24 Languages** — UI fully localized in all supported languages
 - **Edge Cloud TTS** — Neural text-to-speech for all 24 languages
@@ -29,8 +29,8 @@ Side-by-side editor with streaming output, language swap animation, skeleton loa
 ### Proofread
 Three modes: **Grammar Only** (fix errors, keep your voice), **Improve Readability** (rewrite for clarity and flow), or **Full Style Revision** (thorough editing with polish). Side-by-side comparison with accept/dismiss per issue.
 
-### Dictionary
-Look up any word to get:
+### Dictionary & Analysis
+Look up a single word to get:
 - Multiple word classes (noun, verb, adjective) with numbered definitions
 - Register tags per definition (informal, technical, dated, literary)
 - IPA pronunciation with text-to-speech
@@ -38,6 +38,10 @@ Look up any word to get:
 - Synonyms and antonyms (clickable for quick lookup)
 - Example sentences with translations in your native language
 - Etymology and word origin
+
+Enter a phrase, sentence, or passage to get a natural translation, overall
+interpretation, phrasal verbs and idioms, grammar structure, contextual
+keywords, and alternative expressions.
 
 ### Documents
 Drag-and-drop translation for **TXT, MD, CSV, JSON, SRT, and PDF** files. Large documents are automatically chunked and translated in parallel with progress percentage.

@@ -1,8 +1,13 @@
-import { useState, useCallback } from 'react'
-import { lookupWord, downloadTextFile, speakText } from '../../services/ai'
-import type { DictionaryResult, DictionaryExample } from '../../services/ai'
+import { useState, useCallback, useRef } from 'react'
+import { analyzeText, lookupWord, downloadTextFile, speakText } from '../../services/ai'
+import type {
+  DictionaryResult,
+  DictionaryExample,
+  TextAnalysisResult,
+} from '../../services/ai'
 import { loadSettings, langToBcp47 } from '../../services/settings'
 import { useTranslation } from '../../hooks/useTranslation'
+import TextAnalysisResultView from './TextAnalysisResultView'
 
 function highlightWordInText(text: string, word: string) {
   const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -21,10 +26,14 @@ function highlightWordInText(text: string, word: string) {
 
 export default function DictionaryWorkspace() {
   const t = useTranslation()
+  const dictionaryCache = useRef(new Map<string, DictionaryResult>())
+  const lookupRequestId = useRef(0)
   const [input, setInput] = useState('')
   const [tokens, setTokens] = useState<string[]>([])
   const [selectedToken, setSelectedToken] = useState<string | null>(null)
   const [result, setResult] = useState<DictionaryResult | null>(null)
+  const [textAnalysis, setTextAnalysis] = useState<TextAnalysisResult | null>(null)
+  const [activeView, setActiveView] = useState<'dictionary' | 'text'>('dictionary')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [recentWords, setRecentWords] = useState<string[]>([])
@@ -43,12 +52,42 @@ export default function DictionaryWorkspace() {
       .filter(Boolean)
   }, [])
 
+  const addRecentWord = useCallback((word: string) => {
+    setRecentWords((prev) => {
+      const filtered = prev.filter((item) => item.toLowerCase() !== word.toLowerCase())
+      return [word, ...filtered].slice(0, 12)
+    })
+  }, [])
+
   const lookupSelectedWord = useCallback(
     async (word: string, context?: string) => {
-      setLoading(true)
+      const settings = loadSettings()
+      const cacheKey = [
+        settings.providerType,
+        settings.selectedModel,
+        settings.targetLang,
+        settings.openaiBaseUrl,
+        context ?? '',
+        word.toLowerCase(),
+      ].join('\u0000')
+      const cached = dictionaryCache.current.get(cacheKey)
+
+      setActiveView('dictionary')
       setError(null)
+      setPronounceLang(langToBcp47(settings.sourceLang))
+
+      if (cached) {
+        lookupRequestId.current += 1
+        setLoading(false)
+        setResult(cached)
+        addRecentWord(word)
+        return
+      }
+
+      const requestId = ++lookupRequestId.current
+      setLoading(true)
+      setResult(null)
       try {
-        const settings = loadSettings()
         const data = await lookupWord({
           word,
           context,
@@ -56,15 +95,47 @@ export default function DictionaryWorkspace() {
           model: settings.selectedModel,
           providerType: settings.providerType,
         })
+        if (dictionaryCache.current.size >= 100) {
+          const oldestKey = dictionaryCache.current.keys().next().value
+          if (oldestKey) dictionaryCache.current.delete(oldestKey)
+        }
+        dictionaryCache.current.set(cacheKey, data)
+        if (requestId !== lookupRequestId.current) return
         setResult(data)
-        setPronounceLang(langToBcp47(settings.sourceLang))
-        setRecentWords((prev) => {
-          const filtered = prev.filter((w) => w.toLowerCase() !== word.toLowerCase())
-          return [word, ...filtered].slice(0, 12)
-        })
+        addRecentWord(word)
       } catch (err) {
+        if (requestId !== lookupRequestId.current) return
         setError(err instanceof Error ? err.message : t('dictionary.error'))
         setResult(null)
+      } finally {
+        if (requestId === lookupRequestId.current) {
+          setLoading(false)
+        }
+      }
+    },
+    [addRecentWord, t],
+  )
+
+  const analyzeInputText = useCallback(
+    async (text: string) => {
+      lookupRequestId.current += 1
+      setLoading(true)
+      setError(null)
+      setActiveView('text')
+      setResult(null)
+      setTextAnalysis(null)
+      try {
+        const settings = loadSettings()
+        const data = await analyzeText({
+          text,
+          nativeLang: settings.targetLang,
+          model: settings.selectedModel,
+          providerType: settings.providerType,
+        })
+        setTextAnalysis(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : t('dictionary.analysisError'))
+        setTextAnalysis(null)
       } finally {
         setLoading(false)
       }
@@ -82,24 +153,28 @@ export default function DictionaryWorkspace() {
       setTokens(words)
 
       if (words.length === 1) {
+        setTextAnalysis(null)
+        setActiveView('dictionary')
         setSelectedToken(words[0])
         lookupSelectedWord(words[0])
       } else if (words.length > 1) {
         setSelectedToken(null)
-        setResult(null)
+        analyzeInputText(trimmed)
       }
     },
-    [input, tokenize, lookupSelectedWord],
+    [input, tokenize, lookupSelectedWord, analyzeInputText],
   )
 
   const handleTokenClick = useCallback(
     (word: string) => {
       if (loading) return
       setSelectedToken(word)
-      const context = tokens.length > 1 ? tokens.join(' ') : undefined
+      const context = tokens.length > 1
+        ? textAnalysis?.originalText ?? tokens.join(' ')
+        : undefined
       lookupSelectedWord(word, context)
     },
-    [tokens, lookupSelectedWord, loading],
+    [tokens, textAnalysis, lookupSelectedWord, loading],
   )
 
   const handleRecentClick = useCallback(
@@ -107,13 +182,59 @@ export default function DictionaryWorkspace() {
       setInput(word)
       setTokens([word])
       setSelectedToken(word)
+      setTextAnalysis(null)
+      setActiveView('dictionary')
       lookupSelectedWord(word)
     },
     [lookupSelectedWord],
   )
 
+  const handleBackToAnalysis = useCallback(() => {
+    if (!textAnalysis) return
+    lookupRequestId.current += 1
+    setLoading(false)
+    setError(null)
+    setActiveView('text')
+    setSelectedToken(null)
+    setInput(textAnalysis.originalText)
+    setTokens(tokenize(textAnalysis.originalText))
+  }, [textAnalysis, tokenize])
+
   const handleExport = useCallback(() => {
-    if (!result) return
+    if (activeView === 'text' && textAnalysis) {
+      const phrases = textAnalysis.phrases.map((phrase) => [
+        phrase.text,
+        phrase.meaning,
+        phrase.literalMeaning
+          ? `${t('dictionary.literalMeaning')}: ${phrase.literalMeaning}`
+          : '',
+        phrase.usage,
+      ].filter(Boolean).join('\n')).join('\n\n')
+      const grammar = textAnalysis.grammar.map((point) =>
+        `${point.text} [${point.role}]\n${point.explanation}`
+      ).join('\n\n')
+      const keywords = textAnalysis.keywords.map((keyword) =>
+        `${keyword.text} [${keyword.partOfSpeech}]\n${keyword.meaning}${keyword.nuance ? `\n${keyword.nuance}` : ''}`
+      ).join('\n\n')
+      const alternatives = textAnalysis.alternatives.map((alternative) =>
+        `${alternative.text}\n${alternative.translation}${alternative.nuance ? `\n${alternative.nuance}` : ''}`
+      ).join('\n\n')
+      const text = [
+        `${t('dictionary.sourceContext')}:\n${textAnalysis.originalText}`,
+        `${t('dictionary.analysisTranslation')}:\n${textAnalysis.translation}`,
+        `${t('dictionary.analysisInterpretation')}:\n${textAnalysis.interpretation}`,
+        textAnalysis.tone && `${t('settings.tone')}:\n${textAnalysis.tone}`,
+        phrases && `${t('dictionary.analysisPhrases')}:\n${phrases}`,
+        grammar && `${t('dictionary.analysisGrammar')}:\n${grammar}`,
+        keywords && `${t('dictionary.analysisKeywords')}:\n${keywords}`,
+        alternatives && `${t('dictionary.analysisAlternatives')}:\n${alternatives}`,
+      ].filter(Boolean).join('\n\n')
+
+      downloadTextFile(text, 'text-analysis.txt')
+      return
+    }
+
+    if (activeView !== 'dictionary' || !result) return
     const meanings = result.meanings.map(m =>
       `${m.wordClass}:\n${m.definitions.map((d, i) => `  ${i + 1}. ${d.text}${d.register ? ` [${d.register}]` : ''}`).join('\n')}`
     ).join('\n\n')
@@ -135,7 +256,10 @@ export default function DictionaryWorkspace() {
     ].join('\n\n')
 
     downloadTextFile(text, `${result.word}-analysis.txt`)
-  }, [result])
+  }, [activeView, result, textAnalysis, t])
+
+  const visibleTokens = tokens.slice(0, 24)
+  const activeResult = activeView === 'text' ? textAnalysis : result
 
   return (
     <div className="h-full flex flex-col overflow-y-auto px-8 py-6 gap-6">
@@ -145,12 +269,22 @@ export default function DictionaryWorkspace() {
           <span className="material-symbols-outlined text-on-surface-variant ml-4">
             menu_book
           </span>
-          <input
-            type="text"
+          <textarea
+            rows={1}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onInput={(e) => {
+              e.currentTarget.style.height = 'auto'
+              e.currentTarget.style.height = `${Math.min(e.currentTarget.scrollHeight, 160)}px`
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                e.currentTarget.form?.requestSubmit()
+              }
+            }}
             placeholder={t('dictionary.placeholder')}
-            className="flex-1 bg-transparent border-none outline-none text-on-surface placeholder:text-on-surface-variant/40 font-body text-base py-3"
+            className="flex-1 min-h-12 max-h-40 resize-none overflow-y-auto bg-transparent border-none outline-none text-on-surface placeholder:text-on-surface-variant/40 font-body text-base py-3"
           />
           <button
             type="submit"
@@ -179,7 +313,7 @@ export default function DictionaryWorkspace() {
             {t('dictionary.sourceContext')}
           </h3>
           <div className="flex flex-wrap gap-2">
-            {tokens.map((token, i) => (
+            {visibleTokens.map((token, i) => (
               <button
                 key={`${token}-${i}`}
                 onClick={() => handleTokenClick(token)}
@@ -193,8 +327,24 @@ export default function DictionaryWorkspace() {
                 {token}
               </button>
             ))}
+            {tokens.length > visibleTokens.length && (
+              <span className="px-3 py-2 text-xs text-on-surface-variant/45 font-label">
+                +{tokens.length - visibleTokens.length}
+              </span>
+            )}
           </div>
         </div>
+      )}
+
+      {activeView === 'dictionary' && textAnalysis && (
+        <button
+          type="button"
+          onClick={handleBackToAnalysis}
+          className="flex-shrink-0 self-start inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-fixed-dim/10 hover:bg-primary-fixed-dim/20 text-primary-fixed-dim text-xs font-label font-semibold transition-colors cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-base">arrow_back</span>
+          {t('dictionary.backToAnalysis')}
+        </button>
       )}
 
       {/* Error State */}
@@ -208,19 +358,21 @@ export default function DictionaryWorkspace() {
       )}
 
       {/* Loading State */}
-      {loading && !result && (
+      {loading && !activeResult && (
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <div className="w-12 h-12 rounded-full border-2 border-primary-fixed-dim/20 border-t-primary-fixed-dim animate-spin" />
             <p className="text-on-surface-variant/60 text-sm font-label">
-              {t('dictionary.searching')}
+              {activeView === 'text'
+                ? t('dictionary.analyzingText')
+                : t('dictionary.searching')}
             </p>
           </div>
         </div>
       )}
 
       {/* Empty State */}
-      {!result && !loading && !error && tokens.length === 0 && (
+      {!activeResult && !loading && !error && tokens.length === 0 && (
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4 text-center max-w-sm">
             <div className="w-20 h-20 rounded-full bg-surface-container-high/40 flex items-center justify-center">
@@ -238,8 +390,12 @@ export default function DictionaryWorkspace() {
         </div>
       )}
 
+      {activeView === 'text' && textAnalysis && (
+        <TextAnalysisResultView result={textAnalysis} />
+      )}
+
       {/* Results */}
-      {result && (
+      {activeView === 'dictionary' && result && (
         <div className="flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto">
           {/* Header: Word + Phonetics + Frequency */}
           <div className="liquid-glass rounded-[2rem] ghost-border p-8 flex flex-col gap-5">
@@ -445,30 +601,32 @@ export default function DictionaryWorkspace() {
       )}
 
       {/* Footer */}
-      {(recentWords.length > 0 || result) && (
+      {(recentWords.length > 0 || activeResult) && (
         <div className="flex-shrink-0 border-t border-outline-variant/10 pt-4 pb-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <span className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/40 font-label font-semibold whitespace-nowrap">
-                {t('dictionary.recent')}
-              </span>
-              <div className="flex gap-2 overflow-x-auto min-w-0">
-                {recentWords.map((word, i) => (
-                  <button
-                    key={`${word}-${i}`}
-                    onClick={() => handleRecentClick(word)}
-                    className="px-3 py-1 rounded-full bg-surface-container-high/40 hover:bg-surface-container-highest/50 text-on-surface-variant/60 hover:text-on-surface text-xs font-label transition-all duration-200 whitespace-nowrap cursor-pointer"
-                  >
-                    {word}
-                  </button>
-                ))}
+            {recentWords.length > 0 && (
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <span className="text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/40 font-label font-semibold whitespace-nowrap">
+                  {t('dictionary.recent')}
+                </span>
+                <div className="flex gap-2 overflow-x-auto min-w-0">
+                  {recentWords.map((word, i) => (
+                    <button
+                      key={`${word}-${i}`}
+                      onClick={() => handleRecentClick(word)}
+                      className="px-3 py-1 rounded-full bg-surface-container-high/40 hover:bg-surface-container-highest/50 text-on-surface-variant/60 hover:text-on-surface text-xs font-label transition-all duration-200 whitespace-nowrap cursor-pointer"
+                    >
+                      {word}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {result && (
+            {activeResult && (
               <button
                 onClick={handleExport}
-                className="flex items-center gap-2 px-5 py-2 rounded-full bg-surface-container-high/40 hover:bg-surface-container-highest/50 text-on-surface-variant/60 hover:text-on-surface text-xs font-label font-semibold transition-all duration-200 whitespace-nowrap cursor-pointer ml-4"
+                className="flex items-center gap-2 px-5 py-2 rounded-full bg-surface-container-high/40 hover:bg-surface-container-highest/50 text-on-surface-variant/60 hover:text-on-surface text-xs font-label font-semibold transition-all duration-200 whitespace-nowrap cursor-pointer ml-auto"
               >
                 <span className="material-symbols-outlined text-base">download</span>
                 {t('dictionary.export')}

@@ -47,6 +47,13 @@ export interface DictionaryRequest {
   providerType: 'openai' | 'anthropic'
 }
 
+export interface TextAnalysisRequest {
+  text: string
+  nativeLang: string
+  model: string
+  providerType: 'openai' | 'anthropic'
+}
+
 import { loadSettings } from './settings'
 
 async function parseApiError(response: Response): Promise<string> {
@@ -404,6 +411,155 @@ export interface DictionaryResult {
   synonyms: string[]
   antonyms: string[]
   examples: DictionaryExample[]
+}
+
+export interface TextAnalysisPhrase {
+  text: string
+  meaning: string
+  literalMeaning: string
+  usage: string
+}
+
+export interface TextAnalysisGrammarPoint {
+  text: string
+  role: string
+  explanation: string
+}
+
+export interface TextAnalysisKeyword {
+  text: string
+  partOfSpeech: string
+  meaning: string
+  nuance: string
+}
+
+export interface TextAnalysisAlternative {
+  text: string
+  translation: string
+  nuance: string
+}
+
+export interface TextAnalysisResult {
+  originalText: string
+  detectedLanguage: string
+  translation: string
+  interpretation: string
+  tone: string
+  phrases: TextAnalysisPhrase[]
+  grammar: TextAnalysisGrammarPoint[]
+  keywords: TextAnalysisKeyword[]
+  alternatives: TextAnalysisAlternative[]
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function hasStringFields(value: unknown, fields: string[]): value is Record<string, string> {
+  return isRecord(value) && fields.every((field) => typeof value[field] === 'string')
+}
+
+function isTextAnalysisResult(value: unknown): value is TextAnalysisResult {
+  if (!hasStringFields(value, [
+    'originalText',
+    'detectedLanguage',
+    'translation',
+    'interpretation',
+    'tone',
+  ])) {
+    return false
+  }
+
+  return (
+    Array.isArray(value.phrases)
+    && value.phrases.every((item) =>
+      hasStringFields(item, ['text', 'meaning', 'literalMeaning', 'usage']))
+    && Array.isArray(value.grammar)
+    && value.grammar.every((item) =>
+      hasStringFields(item, ['text', 'role', 'explanation']))
+    && Array.isArray(value.keywords)
+    && value.keywords.every((item) =>
+      hasStringFields(item, ['text', 'partOfSpeech', 'meaning', 'nuance']))
+    && Array.isArray(value.alternatives)
+    && value.alternatives.every((item) =>
+      hasStringFields(item, ['text', 'translation', 'nuance']))
+  )
+}
+
+export async function analyzeText(req: TextAnalysisRequest): Promise<TextAnalysisResult> {
+  const systemMsg = `You are a multilingual language teacher and discourse analyst. Analyze the complete input as connected language, not as isolated words.
+
+Write all explanations and translations in ${req.nativeLang}. Keep quoted source segments and alternative expressions in the source language.
+
+Priorities:
+1. Identify multi-word units first: phrasal verbs, idioms, collocations, fixed expressions, and domain-specific phrases. Never explain "burn" and "down" separately when "burn down" is the meaningful unit.
+2. Explain the intended meaning in context, including implied meaning, tone, register, and ambiguity.
+3. Provide a natural translation, useful grammar analysis, important keywords, and natural alternative expressions.
+4. If the input is already in ${req.nativeLang}, use "translation" for a clear natural paraphrase.
+5. Do not invent hidden context. State ambiguity in the interpretation when multiple readings are genuinely possible.
+
+Return exactly one JSON object with no markdown fences or extra text:
+{
+  "originalText": "input exactly as given",
+  "detectedLanguage": "detected source language",
+  "translation": "natural translation or paraphrase in ${req.nativeLang}",
+  "interpretation": "plain-language explanation of the complete meaning and intent in ${req.nativeLang}",
+  "tone": "one short phrase describing tone, register, and likely context in ${req.nativeLang}",
+  "phrases": [
+    {
+      "text": "multi-word source expression",
+      "meaning": "contextual meaning in ${req.nativeLang}",
+      "literalMeaning": "literal meaning in ${req.nativeLang}, or an empty string when not useful",
+      "usage": "why it is used here, register, domain, or common usage in ${req.nativeLang}"
+    }
+  ],
+  "grammar": [
+    {
+      "text": "relevant source segment",
+      "role": "grammatical role or pattern in ${req.nativeLang}",
+      "explanation": "concise explanation in ${req.nativeLang}"
+    }
+  ],
+  "keywords": [
+    {
+      "text": "important source word",
+      "partOfSpeech": "part of speech in ${req.nativeLang}",
+      "meaning": "meaning in this context in ${req.nativeLang}",
+      "nuance": "connotation, domain meaning, or an empty string"
+    }
+  ],
+  "alternatives": [
+    {
+      "text": "natural alternative in the source language",
+      "translation": "translation in ${req.nativeLang}",
+      "nuance": "difference in tone or meaning in ${req.nativeLang}"
+    }
+  ]
+}
+
+Return empty arrays when a section has no useful entries. Keep the analysis concise but specific.`
+
+  const estimatedTokens = Math.max(4096, Math.ceil(req.text.length / 3) * 5)
+  const result = await callAI(
+    [{ role: 'user', content: req.text }],
+    req.model,
+    req.providerType,
+    systemMsg,
+    estimatedTokens,
+  )
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(extractJSON(result))
+  } catch {
+    throw new Error('The AI returned an invalid text analysis response. Please try again.')
+  }
+
+  if (!isTextAnalysisResult(parsed)) {
+    throw new Error('The AI returned an incomplete text analysis response. Please try again.')
+  }
+
+  return { ...parsed, originalText: req.text }
 }
 
 export async function lookupWord(req: DictionaryRequest): Promise<DictionaryResult> {
