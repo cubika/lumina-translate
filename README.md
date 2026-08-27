@@ -2,7 +2,7 @@
 
 > AI-powered desktop translation studio — translate, proofread, and look up words in 24 languages.
 
-Built with **Tauri v2 + React + TypeScript + Vite + Tailwind CSS**. Portable 11 MB executable.
+Built with **Tauri v2 + React + TypeScript + Vite + Tailwind CSS**.
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078d4)
@@ -77,23 +77,25 @@ Grab the latest portable exe from [Releases](https://github.com/cubika/lumina-tr
 ```bash
 git clone https://github.com/cubika/lumina-translate.git
 cd lumina-translate
-npm install
+npm ci
 npm run tauri:dev    # Dev mode with hot reload
 ```
 
 ### Build
 
 ```bash
-npm run package      # Portable exe → release/LuminaTranslate.exe (~11 MB)
+npm run package      # Portable exe → release/LuminaTranslate.exe
 ```
 
-## Supported Models
+## Supported Providers
 
-| Provider | Models |
-|----------|--------|
-| **OpenAI** | GPT-5.4, GPT-5.4 Mini/Nano, GPT-5.2, GPT-4.1, GPT-4.1 Mini/Nano, GPT-4o, GPT-4o Mini |
-| **Anthropic** | Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5 |
-| **Azure** | Model Router or any OpenAI-compatible endpoint |
+| Provider | Support |
+|----------|---------|
+| **OpenAI** | Built-in model selections |
+| **Anthropic** | Built-in Claude model selections |
+| **Azure / compatible APIs** | Model Router or a custom OpenAI-compatible base URL |
+
+The Settings screen is the source of truth for currently selectable models.
 
 ## Tech Stack
 
@@ -105,6 +107,16 @@ npm run package      # Portable exe → release/LuminaTranslate.exe (~11 MB)
 | TTS | Edge Cloud Neural Voices |
 | PDF | pdfjs-dist (Mozilla) |
 | AI | OpenAI & Anthropic APIs with streaming SSE |
+
+## Development
+
+GitHub Copilot is the primary coding agent, with compatible instructions for
+other agents:
+
+- [Copilot repository instructions](.github/copilot-instructions.md)
+- [Multi-agent entry point](AGENTS.md)
+- [Architecture guide](docs/ARCHITECTURE.md)
+- [Development and validation guide](docs/DEVELOPMENT.md)
 
 ## License
 
