@@ -1,6 +1,6 @@
 [package]
 name = "lumina-translate"
-version = "2.4.0"
+version = "2.5.0"
 description = "AI-powered desktop translation app"
 authors = ["you"]
 license = "MIT"
@@ -24,4 +24,3 @@ tokio-tungstenite = { version = "0.26", features = ["native-tls"] }
 futures-util = "0.3"
 uuid = { version = "1", features = ["v4"] }
 sha2 = "0.10"
-
